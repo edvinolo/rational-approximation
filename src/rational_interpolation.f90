@@ -1,4 +1,4 @@
-module rational_approximation
+module rational_interpolation
     use kinds
     implicit none
 
@@ -142,4 +142,4 @@ contains
         res = 0
 
     end function cp_thiele_eval_vec
-end module rational_approximation
+end module rational_interpolation
