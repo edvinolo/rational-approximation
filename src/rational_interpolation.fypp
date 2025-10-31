@@ -1,0 +1,223 @@
+#: set KINDS = ['sp','dp','qp']
+module rational_interpolation
+    use kinds
+    implicit none
+
+    integer, parameter :: re = 1
+    integer, parameter :: cp = 2
+
+    type, abstract, public :: interp_base(wp,domain)
+        integer, kind :: wp
+        integer, kind :: domain
+        integer :: N
+        real(wp), allocatable :: x_r(:)
+        real(wp), allocatable :: y_r(:)
+        complex(wp), allocatable :: x_z(:)
+        complex(wp), allocatable :: y_z(:)
+    contains
+        generic :: init => #{for KIND in KINDS[:-1]}#init_re_${KIND}$, init_cp_${KIND}$, #{endfor}#init_re_${KINDS[-1]}$, init_cp_${KINDS[-1]}$
+        generic :: eval => #{for k in KINDS[:-1]}#eval_vec_re_${k}$, eval_scalar_re_${k}$,eval_vec_cp_${k}$, eval_scalar_cp_${k}$, #{endfor}#eval_vec_re_${KINDS[-1]}$, eval_scalar_re_${KINDS[-1]}$,eval_vec_cp_${KINDS[-1]}$, eval_scalar_cp_${KINDS[-1]}$
+
+        #:for KIND in KINDS
+        procedure(re_init_${KIND}$), deferred :: init_re_${KIND}$
+        procedure(cp_init_${KIND}$), deferred :: init_cp_${KIND}$
+        procedure(re_eval_scalar_${KIND}$), private, deferred :: eval_scalar_re_${KIND}$
+        procedure(re_eval_vec_${KIND}$), private, deferred :: eval_vec_re_${KIND}$
+        procedure(cp_eval_scalar_${KIND}$), private, deferred :: eval_scalar_cp_${KIND}$
+        procedure(cp_eval_vec_${KIND}$), private, deferred :: eval_vec_cp_${KIND}$
+        #:endfor
+    end type interp_base
+
+    type, extends(interp_base), public :: thiele_interp
+        real(wp), allocatable :: rho_r(:)
+        complex(wp), allocatable :: rho_z(:)
+    contains
+        #:for k in KINDS
+        procedure :: init_re_${k}$ => thiele_init_re_${k}$
+        procedure :: init_cp_${k}$ => thiele_init_cp_${k}$
+        procedure :: eval_scalar_re_${k}$ => thiele_eval_scalar_re_${k}$
+        procedure :: eval_vec_re_${k}$ => thiele_eval_vec_re_${k}$
+        procedure :: eval_scalar_cp_${k}$ => thiele_eval_scalar_cp_${k}$
+        procedure :: eval_vec_cp_${k}$ => thiele_eval_vec_cp_${k}$
+        #:endfor
+    end type thiele_interp
+
+    abstract interface
+    #:for KIND in KINDS
+        subroutine re_init_${KIND}$(this,x,y)
+            import :: ${KIND}$
+            import :: re
+            import :: interp_base
+            class(interp_base(${KIND}$,re)), intent(out) :: this
+            real(${KIND}$), intent(in) :: x(:)
+            real(${KIND}$), intent(in) :: y(:)
+        end subroutine re_init_${KIND}$
+
+        subroutine cp_init_${KIND}$(this,x,y)
+            import :: ${KIND}$
+            import :: cp
+            import :: interp_base
+            class(interp_base(${KIND}$,cp)), intent(out) :: this
+            complex(${KIND}$), intent(in) :: x(:)
+            complex(${KIND}$), intent(in) :: y(:)
+        end subroutine cp_init_${KIND}$
+
+        function re_eval_vec_${KIND}$(this,x) result(res)
+            import :: ${KIND}$
+            import :: re
+            import :: interp_base
+            class(interp_base(${KIND}$,re)), intent(in) :: this
+            real(${KIND}$), intent(in) :: x(:)
+            real(${KIND}$), allocatable :: res(:)
+        end function re_eval_vec_${KIND}$
+
+        function cp_eval_vec_${KIND}$(this,x) result(res)
+            import :: ${KIND}$
+            import :: cp
+            import :: interp_base
+            class(interp_base(${KIND}$,cp)), intent(in) :: this
+            complex(${KIND}$), intent(in) :: x(:)
+            complex(${KIND}$), allocatable :: res(:)
+        end function cp_eval_vec_${KIND}$
+
+        function re_eval_scalar_${KIND}$(this,x) result(res)
+            import :: ${KIND}$
+            import :: re
+            import :: interp_base
+            class(interp_base(${KIND}$,re)), intent(in) :: this
+            real(${KIND}$), intent(in) :: x
+            real(${KIND}$) :: res
+        end function re_eval_scalar_${KIND}$
+
+        function cp_eval_scalar_${KIND}$(this,x) result(res)
+            import :: ${KIND}$
+            import :: cp
+            import :: interp_base
+            class(interp_base(${KIND}$,cp)), intent(in) :: this
+            complex(${KIND}$), intent(in) :: x
+            complex(${KIND}$) :: res
+        end function cp_eval_scalar_${KIND}$
+
+    #:endfor
+    end interface
+
+contains
+    #:for k in KINDS
+    subroutine thiele_init_re_${k}$(this,x,y)
+        class(thiele_interp(${k}$,re)), intent(out) :: this
+        real(${k}$), intent(in) :: x(:)
+        real(${k}$), intent(in) :: y(:)
+
+        real(${k}$), allocatable :: rho_temp(:,:)
+        integer :: i
+
+        this%x_r = x
+        this%y_r = y
+        this%N = size(x)
+
+        allocate(rho_temp(this%N,this%N))
+        rho_temp = 0
+        rho_temp(:,1) = this%y_r
+        rho_temp(:this%N-1,2) = (this%x_r(:this%N-1) - this%x_r(2:))/(rho_temp(:this%N-1,1) - rho_temp(2:,1))
+
+        do i = 3,this%N
+            rho_temp(:this%N-i+1,i) = (this%x_r(:this%N-i+1) - this%x_r(i:))&
+                                        /(rho_temp(:this%N-i+1,i-1) - rho_temp(2:this%N-i+2,i-1)) &
+                                        + rho_temp(2:this%N-i+2,i-2)
+        end do
+
+        this%rho_r = rho_temp(1,:)
+    end subroutine thiele_init_re_${k}$
+
+    function thiele_eval_scalar_re_${k}$(this,x) result(res)
+        class(thiele_interp(${k}$,re)), intent(in) :: this
+        real(${k}$), intent(in) :: x
+        real(${k}$) :: res
+
+        integer :: i
+        res = 0
+
+        do i = this%N,3,-1
+            res = (x - this%x_r(i-1))/(this%rho_r(i) - this%rho_r(i-2) + res)
+        end do
+
+        res = this%rho_r(1) + (x - this%x_r(1))/(this%rho_r(2) + res)
+
+    end function thiele_eval_scalar_re_${k}$
+
+    function thiele_eval_vec_re_${k}$(this,x) result(res)
+        class(thiele_interp(${k}$,re)), intent(in) :: this
+        real(${k}$), intent(in) :: x(:)
+        real(${k}$), allocatable :: res(:)
+
+        integer :: i
+
+        allocate(res(size(x)))
+        res = 0
+
+        do i = 1,size(x)
+            res(i) = this%eval(x(i))
+        end do
+
+    end function thiele_eval_vec_re_${k}$
+
+subroutine thiele_init_cp_${k}$(this,x,y)
+        class(thiele_interp(${k}$,cp)), intent(out) :: this
+        complex(${k}$), intent(in) :: x(:)
+        complex(${k}$), intent(in) :: y(:)
+
+        complex(${k}$), allocatable :: rho_temp(:,:)
+        integer :: i
+
+        this%x_r = x
+        this%y_r = y
+        this%N = size(x)
+
+        allocate(rho_temp(this%N,this%N))
+        rho_temp = 0
+        rho_temp(:,1) = this%y_z
+        rho_temp(:this%N-1,2) = (this%x_z(:this%N-1) - this%x_z(2:))/(rho_temp(:this%N-1,1) - rho_temp(2:,1))
+
+        do i = 3,this%N
+            rho_temp(:this%N-i+1,i) = (this%x_z(:this%N-i+1) - this%x_z(i:))&
+                                        /(rho_temp(:this%N-i+1,i-1) - rho_temp(2:this%N-i+2,i-1)) &
+                                        + rho_temp(2:this%N-i+2,i-2)
+        end do
+
+        this%rho_z = rho_temp(1,:)
+    end subroutine thiele_init_cp_${k}$
+
+    function thiele_eval_scalar_cp_${k}$(this,x) result(res)
+        class(thiele_interp(${k}$,cp)), intent(in) :: this
+        complex(${k}$), intent(in) :: x
+        complex(${k}$) :: res
+
+        integer :: i
+        res = 0
+
+        do i = this%N,3,-1
+            res = (x - this%x_r(i-1))/(this%rho_z(i) - this%rho_z(i-2) + res)
+        end do
+
+        res = this%rho_z(1) + (x - this%x_z(1))/(this%rho_z(2) + res)
+
+    end function thiele_eval_scalar_cp_${k}$
+
+    function thiele_eval_vec_cp_${k}$(this,x) result(res)
+        class(thiele_interp(${k}$,cp)), intent(in) :: this
+        complex(${k}$), intent(in) :: x(:)
+        complex(${k}$), allocatable :: res(:)
+
+        integer :: i
+
+        allocate(res(size(x)))
+        res = 0
+
+        do i = 1,size(x)
+            res(i) = this%eval(x(i))
+        end do
+
+    end function thiele_eval_vec_cp_${k}$
+
+    #:endfor
+end module rational_interpolation
