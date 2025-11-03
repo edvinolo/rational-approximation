@@ -295,8 +295,8 @@ subroutine thiele_init_cp_sp(this,x,y)
         complex(sp), allocatable :: rho_temp(:,:)
         integer :: i
 
-        this%x_r = x
-        this%y_r = y
+        this%x_z = x
+        this%y_z = y
         this%N = size(x)
 
         allocate(rho_temp(this%N,this%N))
@@ -322,7 +322,7 @@ subroutine thiele_init_cp_sp(this,x,y)
         res = 0
 
         do i = this%N,3,-1
-            res = (x - this%x_r(i-1))/(this%rho_z(i) - this%rho_z(i-2) + res)
+            res = (x - this%x_z(i-1))/(this%rho_z(i) - this%rho_z(i-2) + res)
         end do
 
         res = this%rho_z(1) + (x - this%x_z(1))/(this%rho_z(2) + res)
@@ -411,8 +411,8 @@ subroutine thiele_init_cp_dp(this,x,y)
         complex(dp), allocatable :: rho_temp(:,:)
         integer :: i
 
-        this%x_r = x
-        this%y_r = y
+        this%x_z = x
+        this%y_z = y
         this%N = size(x)
 
         allocate(rho_temp(this%N,this%N))
@@ -438,7 +438,7 @@ subroutine thiele_init_cp_dp(this,x,y)
         res = 0
 
         do i = this%N,3,-1
-            res = (x - this%x_r(i-1))/(this%rho_z(i) - this%rho_z(i-2) + res)
+            res = (x - this%x_z(i-1))/(this%rho_z(i) - this%rho_z(i-2) + res)
         end do
 
         res = this%rho_z(1) + (x - this%x_z(1))/(this%rho_z(2) + res)
@@ -527,8 +527,8 @@ subroutine thiele_init_cp_qp(this,x,y)
         complex(qp), allocatable :: rho_temp(:,:)
         integer :: i
 
-        this%x_r = x
-        this%y_r = y
+        this%x_z = x
+        this%y_z = y
         this%N = size(x)
 
         allocate(rho_temp(this%N,this%N))
@@ -554,7 +554,7 @@ subroutine thiele_init_cp_qp(this,x,y)
         res = 0
 
         do i = this%N,3,-1
-            res = (x - this%x_r(i-1))/(this%rho_z(i) - this%rho_z(i-2) + res)
+            res = (x - this%x_z(i-1))/(this%rho_z(i) - this%rho_z(i-2) + res)
         end do
 
         res = this%rho_z(1) + (x - this%x_z(1))/(this%rho_z(2) + res)
