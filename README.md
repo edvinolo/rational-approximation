@@ -2,7 +2,8 @@
 This is a Fortran library for rational approximation of functions. The library can be built using the Fortran Package Manager (fpm). Multiple precisions are supported using the fypp preprocessing tool. Both real and complex types are supported.
 
 ## Currently supported interpolation schemes
-- ```thiele_interp``` Interpolates using Thiele's interpolation formula 
+- ```thiele_interp``` Interpolates using Thiele's interpolation formula.
+- ```MTT_interp``` Finds an interpolant using the modified Thacher-Tukey algorithm.
 
 ## Currently supported approximation schemes
 
