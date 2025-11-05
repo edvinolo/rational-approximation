@@ -1,6 +1,9 @@
-#: set KINDS = ['sp','dp','qp']
+#: set KINDS = ['sp','dp']
 module rational_interpolation
     use kinds
+    use stdlib_math, only: is_close
+    use ieee_arithmetic, only: ieee_is_finite
+    use iso_fortran_env, only: stdout => output_unit, stderr => error_unit
     implicit none
 
     integer, parameter :: re = 1
@@ -41,6 +44,26 @@ module rational_interpolation
         procedure :: eval_vec_cp_${k}$ => thiele_eval_vec_cp_${k}$
         #:endfor
     end type thiele_interp
+
+    type, extends(interp_base), public :: MTT_interp
+        real(wp), allocatable :: a_r(:)
+        complex(wp), allocatable :: a_z(:)
+        real(wp), allocatable :: x_p_r(:)
+        complex(wp), allocatable :: x_p_z(:)
+        real(wp), allocatable :: y_p_r(:)
+        complex(wp), allocatable :: y_p_z(:)
+        logical :: is_constant
+        integer :: t
+    contains
+        #:for k in KINDS
+        procedure :: init_re_${k}$ => MTT_init_re_${k}$
+        procedure :: init_cp_${k}$ => MTT_init_cp_${k}$
+        procedure :: eval_scalar_re_${k}$ => MTT_eval_scalar_re_${k}$
+        procedure :: eval_vec_re_${k}$ => MTT_eval_vec_re_${k}$
+        procedure :: eval_scalar_cp_${k}$ => MTT_eval_scalar_cp_${k}$
+        procedure :: eval_vec_cp_${k}$ => MTT_eval_vec_cp_${k}$
+        #:endfor
+    end type MTT_interp
 
     abstract interface
     #:for KIND in KINDS
@@ -161,7 +184,7 @@ contains
 
     end function thiele_eval_vec_re_${k}$
 
-subroutine thiele_init_cp_${k}$(this,x,y)
+    subroutine thiele_init_cp_${k}$(this,x,y)
         class(thiele_interp(${k}$,cp)), intent(out) :: this
         complex(${k}$), intent(in) :: x(:)
         complex(${k}$), intent(in) :: y(:)
@@ -218,6 +241,262 @@ subroutine thiele_init_cp_${k}$(this,x,y)
         end do
 
     end function thiele_eval_vec_cp_${k}$
+    #:endfor
+
+    #:for k in KINDS
+    subroutine MTT_init_re_${k}$(this,x,y)
+        class(MTT_interp(${k}$,re)), intent(out) :: this
+        real(${k}$), intent(in) :: x(:)
+        real(${k}$), intent(in) :: y(:)
+
+        real(${k}$), allocatable :: g_j(:),q_i(:),q_i_m(:),q_i_p(:)
+        integer :: j,i
+        logical :: found_x_j
+        real(${k}$), parameter :: zero = 0.0_${k}$
+
+        this%x_r = x
+        this%y_r = y
+        this%N = size(x)
+
+        do i = 1,this%N
+            do j = i+1,this%N
+                if (is_close(x(i),x(j))) then
+                    call interp_distinct_error('MTT')
+                end if
+            end do
+        end do
+
+        allocate(this%x_p_r(this%N),this%y_p_r(this%N),g_j(2:this%N),this%a_r(2:this%N))
+        this%x_p_r = x
+        this%y_p_r = y
+        g_j = y(2:)-y(1)
+        this%a_r = 0
+
+        ! Stage (a)
+        this%t = 1
+        do j = 2,this%N
+            if (.not.ieee_is_finite(g_j(j)).or.is_close(g_j(j),zero)) then
+                found_x_j = .false.
+                do i = j+1,this%N
+                    if (ieee_is_finite(g_j(i)).and..not.is_close(g_j(i),zero)) then
+                        this%x_p_r([i,j]) = this%x_p_r([j,i])
+                        g_j([i,j]) = g_j([j,i])
+                        this%y_p_r([i,j]) = this%y_p_r([j,i])
+                        found_x_j = .true.
+                        exit
+                    end if
+                end do
+                if (.not.found_x_j) then
+                    if (all(ieee_is_finite(g_j(j:)))) then
+                        ! Stage (b)
+                        exit
+                    else
+                        ! Stage (c)
+                        call interp_exist_error('MTT, Stage (c)')
+                    end if
+                end if
+            end if
+            this%a_r(j) = g_j(j)/(this%x_p_r(j)-this%x_p_r(j-1))
+            if (j<this%N) then
+                g_j(j+1:) = this%a_r(j)*(this%x_p_r(j+1:)-this%x_p_r(j-1))/g_j(j+1:) - 1.0_${k}$
+            end if
+            this%t = j
+        end do
+
+        ! Termination stage
+        if (this%t == 1) then
+            this%is_constant = .true.
+        else
+            allocate(q_i(this%N),q_i_m(this%N),q_i_p(this%N))
+            q_i_m = 1.0_${k}$
+            q_i = q_i_m + this%a_r(3)*(this%x_r-this%x_p_r(2))
+            if (any(is_close(q_i,zero))) call interp_exist_error('MTT, q_2')
+            do i = 3,this%t-1
+                q_i_p = q_i + this%a_r(i+1)*(this%x_r-this%x_p_r(i))*q_i_m
+                if (any(is_close(q_i_p,zero))) call interp_exist_error('MTT, q_i')
+                q_i_m = q_i
+                q_i = q_i_p
+            end do
+        end if
+
+    end subroutine MTT_init_re_${k}$
+
+    function MTT_eval_scalar_re_${k}$(this,x) result(res)
+        class(MTT_interp(${k}$,re)), intent(in) :: this
+        real(${k}$), intent(in) :: x
+        real(${k}$) :: res
+
+        integer :: i
+        real(${k}$) :: frac
+
+        res = this%y_r(1)
+
+        if (this%t > 1) then
+
+            frac = 1.0_${k}$
+
+            do i = this%t,3,-1
+                frac = 1.0_${k}$ + this%a_r(i)*(x - this%x_p_r(i-1))/frac
+            end do
+
+            frac = this%a_r(2)*(x-this%x_p_r(1))/frac
+            res = res + frac
+        end if
+
+    end function MTT_eval_scalar_re_${k}$
+
+    function MTT_eval_vec_re_${k}$(this,x) result(res)
+        class(MTT_interp(${k}$,re)), intent(in) :: this
+        real(${k}$), intent(in) :: x(:)
+        real(${k}$), allocatable :: res(:)
+
+        integer :: i
+
+        allocate(res(size(x)))
+        res = 0
+
+        do i = 1,size(x)
+            res(i) = this%eval(x(i))
+        end do
+
+    end function MTT_eval_vec_re_${k}$
+
+    subroutine MTT_init_cp_${k}$(this,x,y)
+        class(MTT_interp(${k}$,cp)), intent(out) :: this
+        complex(${k}$), intent(in) :: x(:)
+        complex(${k}$), intent(in) :: y(:)
+
+        complex(${k}$), allocatable :: g_j(:),q_i(:),q_i_m(:),q_i_p(:)
+        integer :: j,i
+        logical :: found_x_j
+        complex(${k}$), parameter :: zero = (0.0_${k}$,0.0_${k}$)
+
+        this%x_z = x
+        this%y_z = y
+        this%N = size(x)
+
+        do i = 1,this%N
+            do j = i+1,this%N
+                if (is_close(x(i),x(j))) then
+                    call interp_distinct_error('MTT')
+                end if
+            end do
+        end do
+
+        allocate(this%x_p_z(this%N),this%y_p_z(this%N),g_j(2:this%N),this%a_z(2:this%N))
+        this%x_p_z = x
+        this%y_p_z = y
+        g_j = y(2:)-y(1)
+        this%a_z = 0
+
+        ! Stage (a)
+        this%t = 1
+        do j = 2,this%N
+            if (.not.is_finite_${k}$(g_j(j)).or.is_close(g_j(j),zero)) then
+                found_x_j = .false.
+                do i = j+1,this%N
+                    if (is_finite_${k}$(g_j(i)).and..not.is_close(g_j(i),zero)) then
+                        this%x_p_z([i,j]) = this%x_p_z([j,i])
+                        g_j([i,j]) = g_j([j,i])
+                        this%y_p_z([i,j]) = this%y_p_z([j,i])
+                        found_x_j = .true.
+                        exit
+                    end if
+                end do
+                if (.not.found_x_j) then
+                    if (all(is_finite_${k}$(g_j(j:)))) then
+                        ! Stage (b)
+                        exit
+                    else
+                        ! Stage (c)
+                        call interp_exist_error('MTT, Stage (c)')
+                    end if
+                end if
+            end if
+            this%a_z(j) = g_j(j)/(this%x_p_z(j)-this%x_p_z(j-1))
+            if (j<this%N) then
+                g_j(j+1:) = this%a_z(j)*(this%x_p_z(j+1:)-this%x_p_z(j-1))/g_j(j+1:) - 1.0_${k}$
+            end if
+            this%t = j
+        end do
+
+        ! Termination stage
+        if (this%t == 1) then
+            this%is_constant = .true.
+        else
+            allocate(q_i(this%N),q_i_m(this%N),q_i_p(this%N))
+            q_i_m = 1.0_${k}$
+            q_i = q_i_m + this%a_z(3)*(this%x_z-this%x_p_z(2))
+            if (any(is_close(q_i,zero))) call interp_exist_error('MTT, q_2')
+            do i = 3,this%t-1
+                q_i_p = q_i + this%a_z(i+1)*(this%x_z-this%x_p_z(i))*q_i_m
+                if (any(is_close(q_i_p,zero))) call interp_exist_error('MTT, q_i')
+                q_i_m = q_i
+                q_i = q_i_p
+            end do
+        end if
+    end subroutine MTT_init_cp_${k}$
+
+    function MTT_eval_scalar_cp_${k}$(this,x) result(res)
+        class(MTT_interp(${k}$,cp)), intent(in) :: this
+        complex(${k}$), intent(in) :: x
+        complex(${k}$) :: res
+
+        integer :: i
+        complex(${k}$) :: frac
+
+        res = this%y_z(1)
+
+        if (this%t > 1) then
+
+            frac = 1.0_${k}$
+
+            do i = this%t,3,-1
+                frac = 1.0_${k}$ + this%a_z(i)*(x - this%x_p_z(i-1))/frac
+            end do
+
+            frac = this%a_z(2)*(x-this%x_p_z(1))/frac
+            res = res + frac
+        end if
+
+    end function MTT_eval_scalar_cp_${k}$
+
+    function MTT_eval_vec_cp_${k}$(this,x) result(res)
+        class(MTT_interp(${k}$,cp)), intent(in) :: this
+        complex(${k}$), intent(in) :: x(:)
+        complex(${k}$), allocatable :: res(:)
+
+        integer :: i
+
+        allocate(res(size(x)))
+        res = 0
+
+        do i = 1,size(x)
+            res(i) = this%eval(x(i))
+        end do
+
+    end function MTT_eval_vec_cp_${k}$
+
+    elemental function is_finite_${k}$(z) result(res)
+        complex(${k}$), intent(in) :: z
+        logical :: res
+
+        res = ieee_is_finite(real(z,kind=${k}$)).and.ieee_is_finite(aimag(z))
+    end function is_finite_${k}$
 
     #:endfor
+
+    subroutine interp_exist_error(error_message)
+        character(len=*), intent(in) :: error_message
+
+        write(stderr,'(a,a)') 'Error! Interpolant does not exist: ', error_message
+        error stop
+    end subroutine interp_exist_error
+
+    subroutine interp_distinct_error(error_message)
+        character(len=*), intent(in) :: error_message
+
+        write(stderr,'(a,a)') 'Error! Interpolation points are not distinct in: ', error_message
+        error stop
+    end subroutine interp_distinct_error
 end module rational_interpolation
