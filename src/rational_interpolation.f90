@@ -677,6 +677,8 @@ contains
         integer :: j,i
         logical :: found_x_j
         complex(sp), parameter :: zero = 0
+        logical :: num_zero, den_zero
+        logical, allocatable :: inf(:)
 
         this%x = x
         this%y = y
@@ -695,6 +697,7 @@ contains
         this%y_p = y
         g_j = y(2:)-y(1)
         this%a = 0
+        allocate(inf(this%N),source = .false.)
 
         ! Stage (a)
         this%t = 1
@@ -706,6 +709,7 @@ contains
                         this%x_p([i,j]) = this%x_p([j,i])
                         g_j([i,j]) = g_j([j,i])
                         this%y_p([i,j]) = this%y_p([j,i])
+                        inf([i,j]) = inf([j,i])
                         found_x_j = .true.
                         exit
                     end if
@@ -722,7 +726,20 @@ contains
             end if
             this%a(j) = g_j(j)/(this%x_p(j)-this%x_p(j-1))
             if (j<this%N) then
-                g_j(j+1:) = this%a(j)*(this%x_p(j+1:)-this%x_p(j-1))/g_j(j+1:) - 1.0_sp
+                do i = j+1, this%N
+                    if (inf(i)) then
+                        g_j(i) = -1.0_sp
+                        inf(i) = .false.
+                    else
+                        den_zero = is_close(g_j(i),zero).and.is_finite(g_j(i))
+                        num_zero = is_close(this%a(j)*(this%x_p(i)-this%x_p(j-1)),zero)
+                        num_zero = num_zero.and.is_finite(this%a(j)*(this%x_p(i)-this%x_p(j-1)))
+                        g_j(i) = this%a(j)*(this%x_p(i)-this%x_p(j-1))/g_j(i) - 1.0_sp
+                        if (den_zero.and..not.num_zero) then
+                            inf(i) = .true.
+                        end if
+                    end if
+                end do
             end if
             this%t = j
         end do
@@ -794,6 +811,8 @@ contains
         integer :: j,i
         logical :: found_x_j
         complex(dp), parameter :: zero = 0
+        logical :: num_zero, den_zero
+        logical, allocatable :: inf(:)
 
         this%x = x
         this%y = y
@@ -812,6 +831,7 @@ contains
         this%y_p = y
         g_j = y(2:)-y(1)
         this%a = 0
+        allocate(inf(this%N),source = .false.)
 
         ! Stage (a)
         this%t = 1
@@ -823,6 +843,7 @@ contains
                         this%x_p([i,j]) = this%x_p([j,i])
                         g_j([i,j]) = g_j([j,i])
                         this%y_p([i,j]) = this%y_p([j,i])
+                        inf([i,j]) = inf([j,i])
                         found_x_j = .true.
                         exit
                     end if
@@ -839,7 +860,20 @@ contains
             end if
             this%a(j) = g_j(j)/(this%x_p(j)-this%x_p(j-1))
             if (j<this%N) then
-                g_j(j+1:) = this%a(j)*(this%x_p(j+1:)-this%x_p(j-1))/g_j(j+1:) - 1.0_dp
+                do i = j+1, this%N
+                    if (inf(i)) then
+                        g_j(i) = -1.0_dp
+                        inf(i) = .false.
+                    else
+                        den_zero = is_close(g_j(i),zero).and.is_finite(g_j(i))
+                        num_zero = is_close(this%a(j)*(this%x_p(i)-this%x_p(j-1)),zero)
+                        num_zero = num_zero.and.is_finite(this%a(j)*(this%x_p(i)-this%x_p(j-1)))
+                        g_j(i) = this%a(j)*(this%x_p(i)-this%x_p(j-1))/g_j(i) - 1.0_dp
+                        if (den_zero.and..not.num_zero) then
+                            inf(i) = .true.
+                        end if
+                    end if
+                end do
             end if
             this%t = j
         end do
