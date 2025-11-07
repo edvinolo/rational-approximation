@@ -10,6 +10,9 @@ This is a Fortran library for rational approximation of functions. The library c
 ## Building the library
 The library can be built with the ```fpm build``` command.
 
+## Running the tests
+The suite of tests can be run with the ```fpm test``` command.
+
 ## Examples
 The examples can be found in the ```example``` directory. 
 
