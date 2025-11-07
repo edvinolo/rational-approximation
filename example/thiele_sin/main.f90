@@ -1,6 +1,6 @@
 program thiele_sin
     use kinds
-    use rational_interpolation, only: thiele_interp,re,cp
+    use rational_interpolation, only: thiele_interp_re,thiele_interp_cp
     implicit none
 
     integer, parameter :: N_int = 8
@@ -15,7 +15,7 @@ program thiele_sin
     real(wp), allocatable :: x(:)
     real(wp), allocatable :: y_int(:)
     real(wp), allocatable :: y(:)
-    type(thiele_interp(wp,re)) :: real_thiele
+    type(thiele_interp_re(wp)) :: real_thiele
 
     complex(wp), parameter :: dx_int_z = (0.4_wp,0.1_wp)
     complex(wp), parameter :: dx_z = (0.13_wp,0.1_wp)
@@ -26,7 +26,7 @@ program thiele_sin
     complex(wp), allocatable :: x_z(:)
     complex(wp), allocatable :: y_int_z(:)
     complex(wp), allocatable :: y_z(:)
-    type(thiele_interp(wp,cp)) :: cmplx_thiele
+    type(thiele_interp_cp(wp)) :: cmplx_thiele
 
     integer :: i,unit
 

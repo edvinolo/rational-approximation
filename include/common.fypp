@@ -1,0 +1,11 @@
+#: set KINDS = ['sp','dp']
+#: set DOMAIN_PREFIX = ['re','cp']
+#: set DOMAIN_NAMES = ['real','complex']
+#: set DOMAINS = list(zip(DOMAIN_PREFIX,DOMAIN_NAMES))
+#: set WP_TYPES = ['real(wp)','complex(wp)']
+#: set REAL_TYPES = [f'real({k})' for k in KINDS]
+#: set CMPLX_TYPES = [f'complex({k})' for k in KINDS]
+#: set TYPES = REAL_TYPES + CMPLX_TYPES
+#: set REAL_TYPES_KINDS = list(zip(REAL_TYPES,KINDS))
+#: set CMPLX_TYPES_KINDS = list(zip(CMPLX_TYPES,KINDS))
+#: set TYPES_KINDS = REAL_TYPES_KINDS + CMPLX_TYPES_KINDS

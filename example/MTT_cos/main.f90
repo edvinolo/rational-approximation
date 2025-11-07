@@ -1,6 +1,6 @@
 program MTT_cos
     use kinds
-    use rational_interpolation, only: MTT_interp,re,cp
+    use rational_interpolation, only: MTT_interp_re,MTT_interp_cp
     implicit none
 
     integer, parameter :: N_int = 8
@@ -15,7 +15,7 @@ program MTT_cos
     real(wp), allocatable :: x(:)
     real(wp), allocatable :: y_int(:)
     real(wp), allocatable :: y(:)
-    type(MTT_interp(wp,re)) :: real_MTT
+    type(MTT_interp_re(wp)) :: real_MTT
 
     complex(wp), parameter :: dx_int_z = (0.4_wp,0.1_wp)
     complex(wp), parameter :: dx_z = (0.13_wp,0.1_wp)
@@ -26,7 +26,7 @@ program MTT_cos
     complex(wp), allocatable :: x_z(:)
     complex(wp), allocatable :: y_int_z(:)
     complex(wp), allocatable :: y_z(:)
-    type(MTT_interp(wp,cp)) :: cmplx_MTT
+    type(MTT_interp_cp(wp)) :: cmplx_MTT
 
     integer :: i,unit,t
     real(wp) :: abs_re,abs_cp

@@ -1,4 +1,4 @@
-#: set KINDS = ['sp','dp']
+#:include "../include/common.fypp"
 module rational_interpolation
     use kinds
     use stdlib_math, only: is_close
@@ -6,172 +6,143 @@ module rational_interpolation
     use iso_fortran_env, only: stdout => output_unit, stderr => error_unit
     implicit none
 
-    integer, parameter :: re = 1
-    integer, parameter :: cp = 2
-
-    type, abstract, public :: interp_base(wp,domain)
+    #:for d,typ in list(zip(DOMAIN_PREFIX,WP_TYPES))
+    type, abstract, public :: interp_base_${d}$(wp)
         integer, kind :: wp
-        integer, kind :: domain
         integer :: N
-        real(wp), allocatable :: x_r(:)
-        real(wp), allocatable :: y_r(:)
-        complex(wp), allocatable :: x_z(:)
-        complex(wp), allocatable :: y_z(:)
+        ${typ}$, allocatable :: x(:)
+        ${typ}$, allocatable :: y(:)
     contains
-        generic :: init => #{for KIND in KINDS[:-1]}#init_re_${KIND}$, init_cp_${KIND}$, #{endfor}#init_re_${KINDS[-1]}$, init_cp_${KINDS[-1]}$
-        generic :: eval => #{for k in KINDS[:-1]}#eval_vec_re_${k}$, eval_scalar_re_${k}$,eval_vec_cp_${k}$, eval_scalar_cp_${k}$, #{endfor}#eval_vec_re_${KINDS[-1]}$, eval_scalar_re_${KINDS[-1]}$,eval_vec_cp_${KINDS[-1]}$, eval_scalar_cp_${KINDS[-1]}$
+        generic :: init => #{for KIND in KINDS[:-1]}#init_${d}$_${KIND}$, #{endfor}#init_${d}$_${KINDS[-1]}$
+        generic :: eval => #{for k in KINDS[:-1]}#eval_vec_${d}$_${k}$, eval_scalar_${d}$_${k}$, #{endfor}#eval_vec_${d}$_${KINDS[-1]}$, eval_scalar_${d}$_${KINDS[-1]}$
 
         #:for KIND in KINDS
-        procedure(re_init_${KIND}$), deferred :: init_re_${KIND}$
-        procedure(cp_init_${KIND}$), deferred :: init_cp_${KIND}$
-        procedure(re_eval_scalar_${KIND}$), private, deferred :: eval_scalar_re_${KIND}$
-        procedure(re_eval_vec_${KIND}$), private, deferred :: eval_vec_re_${KIND}$
-        procedure(cp_eval_scalar_${KIND}$), private, deferred :: eval_scalar_cp_${KIND}$
-        procedure(cp_eval_vec_${KIND}$), private, deferred :: eval_vec_cp_${KIND}$
+        procedure(${d}$_init_${KIND}$), deferred :: init_${d}$_${KIND}$
+        procedure(${d}$_eval_scalar_${KIND}$), private, deferred :: eval_scalar_${d}$_${KIND}$
+        procedure(${d}$_eval_vec_${KIND}$), private, deferred :: eval_vec_${d}$_${KIND}$
         #:endfor
-    end type interp_base
+    end type interp_base_${d}$
 
-    type, extends(interp_base), public :: thiele_interp
-        real(wp), allocatable :: rho_r(:)
-        complex(wp), allocatable :: rho_z(:)
+    #:endfor
+
+    #:for d,typ in list(zip(DOMAIN_PREFIX,WP_TYPES))
+    type, extends(interp_base_${d}$), public :: thiele_interp_${d}$
+        ${typ}$, allocatable :: rho(:)
     contains
         #:for k in KINDS
-        procedure :: init_re_${k}$ => thiele_init_re_${k}$
-        procedure :: init_cp_${k}$ => thiele_init_cp_${k}$
-        procedure :: eval_scalar_re_${k}$ => thiele_eval_scalar_re_${k}$
-        procedure :: eval_vec_re_${k}$ => thiele_eval_vec_re_${k}$
-        procedure :: eval_scalar_cp_${k}$ => thiele_eval_scalar_cp_${k}$
-        procedure :: eval_vec_cp_${k}$ => thiele_eval_vec_cp_${k}$
+        procedure :: init_${d}$_${k}$ => thiele_init_${d}$_${k}$
+        procedure :: eval_scalar_${d}$_${k}$ => thiele_eval_scalar_${d}$_${k}$
+        procedure :: eval_vec_${d}$_${k}$ => thiele_eval_vec_${d}$_${k}$
         #:endfor
-    end type thiele_interp
+    end type thiele_interp_${d}$
 
-    type, extends(interp_base), public :: MTT_interp
-        real(wp), allocatable :: a_r(:)
-        complex(wp), allocatable :: a_z(:)
-        real(wp), allocatable :: x_p_r(:)
-        complex(wp), allocatable :: x_p_z(:)
-        real(wp), allocatable :: y_p_r(:)
-        complex(wp), allocatable :: y_p_z(:)
+    #:endfor
+
+    #:for d,typ in list(zip(DOMAIN_PREFIX,WP_TYPES))
+    type, extends(interp_base_${d}$), public :: MTT_interp_${d}$
+        ${typ}$, allocatable :: a(:)
+        ${typ}$, allocatable :: x_p(:)
+        ${typ}$, allocatable :: y_p(:)
         logical :: is_constant
         integer :: t
     contains
         #:for k in KINDS
-        procedure :: init_re_${k}$ => MTT_init_re_${k}$
-        procedure :: init_cp_${k}$ => MTT_init_cp_${k}$
-        procedure :: eval_scalar_re_${k}$ => MTT_eval_scalar_re_${k}$
-        procedure :: eval_vec_re_${k}$ => MTT_eval_vec_re_${k}$
-        procedure :: eval_scalar_cp_${k}$ => MTT_eval_scalar_cp_${k}$
-        procedure :: eval_vec_cp_${k}$ => MTT_eval_vec_cp_${k}$
+        procedure :: init_${d}$_${k}$ => MTT_init_${d}$_${k}$
+        procedure :: eval_scalar_${d}$_${k}$ => MTT_eval_scalar_${d}$_${k}$
+        procedure :: eval_vec_${d}$_${k}$ => MTT_eval_vec_${d}$_${k}$
         #:endfor
-    end type MTT_interp
+    end type MTT_interp_${d}$
+
+    #:endfor
 
     abstract interface
+    #:for d,typ in DOMAINS
     #:for KIND in KINDS
-        subroutine re_init_${KIND}$(this,x,y)
+        subroutine ${d}$_init_${KIND}$(this,x,y)
             import :: ${KIND}$
-            import :: re
-            import :: interp_base
-            class(interp_base(${KIND}$,re)), intent(out) :: this
-            real(${KIND}$), intent(in) :: x(:)
-            real(${KIND}$), intent(in) :: y(:)
-        end subroutine re_init_${KIND}$
+            import :: interp_base_${d}$
+            class(interp_base_${d}$(${KIND}$)), intent(out) :: this
+            ${typ}$(${KIND}$), intent(in) :: x(:)
+            ${typ}$(${KIND}$), intent(in) :: y(:)
+        end subroutine ${d}$_init_${KIND}$
 
-        subroutine cp_init_${KIND}$(this,x,y)
+        function ${d}$_eval_vec_${KIND}$(this,x) result(res)
             import :: ${KIND}$
-            import :: cp
-            import :: interp_base
-            class(interp_base(${KIND}$,cp)), intent(out) :: this
-            complex(${KIND}$), intent(in) :: x(:)
-            complex(${KIND}$), intent(in) :: y(:)
-        end subroutine cp_init_${KIND}$
+            import :: interp_base_${d}$
+            class(interp_base_${d}$(${KIND}$)), intent(in) :: this
+            ${typ}$(${KIND}$), intent(in) :: x(:)
+            ${typ}$(${KIND}$), allocatable :: res(:)
+        end function ${d}$_eval_vec_${KIND}$
 
-        function re_eval_vec_${KIND}$(this,x) result(res)
+        function ${d}$_eval_scalar_${KIND}$(this,x) result(res)
             import :: ${KIND}$
-            import :: re
-            import :: interp_base
-            class(interp_base(${KIND}$,re)), intent(in) :: this
-            real(${KIND}$), intent(in) :: x(:)
-            real(${KIND}$), allocatable :: res(:)
-        end function re_eval_vec_${KIND}$
+            import :: interp_base_${d}$
+            class(interp_base_${d}$(${KIND}$)), intent(in) :: this
+            ${typ}$(${KIND}$), intent(in) :: x
+            ${typ}$(${KIND}$) :: res
+        end function ${d}$_eval_scalar_${KIND}$
 
-        function cp_eval_vec_${KIND}$(this,x) result(res)
-            import :: ${KIND}$
-            import :: cp
-            import :: interp_base
-            class(interp_base(${KIND}$,cp)), intent(in) :: this
-            complex(${KIND}$), intent(in) :: x(:)
-            complex(${KIND}$), allocatable :: res(:)
-        end function cp_eval_vec_${KIND}$
+    #:endfor
+    #:endfor
+    end interface
 
-        function re_eval_scalar_${KIND}$(this,x) result(res)
-            import :: ${KIND}$
-            import :: re
-            import :: interp_base
-            class(interp_base(${KIND}$,re)), intent(in) :: this
-            real(${KIND}$), intent(in) :: x
-            real(${KIND}$) :: res
-        end function re_eval_scalar_${KIND}$
-
-        function cp_eval_scalar_${KIND}$(this,x) result(res)
-            import :: ${KIND}$
-            import :: cp
-            import :: interp_base
-            class(interp_base(${KIND}$,cp)), intent(in) :: this
-            complex(${KIND}$), intent(in) :: x
-            complex(${KIND}$) :: res
-        end function cp_eval_scalar_${KIND}$
-
+    interface is_finite
+    #:for d in DOMAIN_PREFIX
+    #:for k in KINDS
+        module procedure :: is_finite_${d}$_${k}$
+    #:endfor
     #:endfor
     end interface
 
 contains
+    #:for d,typ in DOMAINS
     #:for k in KINDS
-    subroutine thiele_init_re_${k}$(this,x,y)
-        class(thiele_interp(${k}$,re)), intent(out) :: this
-        real(${k}$), intent(in) :: x(:)
-        real(${k}$), intent(in) :: y(:)
+    subroutine thiele_init_${d}$_${k}$(this,x,y)
+        class(thiele_interp_${d}$(${k}$)), intent(out) :: this
+        ${typ}$(${k}$), intent(in) :: x(:)
+        ${typ}$(${k}$), intent(in) :: y(:)
 
-        real(${k}$), allocatable :: rho_temp(:,:)
+        ${typ}$(${k}$), allocatable :: rho_temp(:,:)
         integer :: i
 
-        this%x_r = x
-        this%y_r = y
+        this%x = x
+        this%y = y
         this%N = size(x)
 
         allocate(rho_temp(this%N,this%N))
         rho_temp = 0
-        rho_temp(:,1) = this%y_r
-        rho_temp(:this%N-1,2) = (this%x_r(:this%N-1) - this%x_r(2:))/(rho_temp(:this%N-1,1) - rho_temp(2:,1))
+        rho_temp(:,1) = this%y
+        rho_temp(:this%N-1,2) = (this%x(:this%N-1) - this%x(2:))/(rho_temp(:this%N-1,1) - rho_temp(2:,1))
 
         do i = 3,this%N
-            rho_temp(:this%N-i+1,i) = (this%x_r(:this%N-i+1) - this%x_r(i:))&
+            rho_temp(:this%N-i+1,i) = (this%x(:this%N-i+1) - this%x(i:))&
                                         /(rho_temp(:this%N-i+1,i-1) - rho_temp(2:this%N-i+2,i-1)) &
                                         + rho_temp(2:this%N-i+2,i-2)
         end do
 
-        this%rho_r = rho_temp(1,:)
-    end subroutine thiele_init_re_${k}$
+        this%rho = rho_temp(1,:)
+    end subroutine thiele_init_${d}$_${k}$
 
-    function thiele_eval_scalar_re_${k}$(this,x) result(res)
-        class(thiele_interp(${k}$,re)), intent(in) :: this
-        real(${k}$), intent(in) :: x
-        real(${k}$) :: res
+    function thiele_eval_scalar_${d}$_${k}$(this,x) result(res)
+        class(thiele_interp_${d}$(${k}$)), intent(in) :: this
+        ${typ}$(${k}$), intent(in) :: x
+        ${typ}$(${k}$) :: res
 
         integer :: i
         res = 0
 
         do i = this%N,3,-1
-            res = (x - this%x_r(i-1))/(this%rho_r(i) - this%rho_r(i-2) + res)
+            res = (x - this%x(i-1))/(this%rho(i) - this%rho(i-2) + res)
         end do
 
-        res = this%rho_r(1) + (x - this%x_r(1))/(this%rho_r(2) + res)
+        res = this%rho(1) + (x - this%x(1))/(this%rho(2) + res)
 
-    end function thiele_eval_scalar_re_${k}$
+    end function thiele_eval_scalar_${d}$_${k}$
 
-    function thiele_eval_vec_re_${k}$(this,x) result(res)
-        class(thiele_interp(${k}$,re)), intent(in) :: this
-        real(${k}$), intent(in) :: x(:)
-        real(${k}$), allocatable :: res(:)
+    function thiele_eval_vec_${d}$_${k}$(this,x) result(res)
+        class(thiele_interp_${d}$(${k}$)), intent(in) :: this
+        ${typ}$(${k}$), intent(in) :: x(:)
+        ${typ}$(${k}$), allocatable :: res(:)
 
         integer :: i
 
@@ -182,54 +153,118 @@ contains
             res(i) = this%eval(x(i))
         end do
 
-    end function thiele_eval_vec_re_${k}$
+    end function thiele_eval_vec_${d}$_${k}$
 
-    subroutine thiele_init_cp_${k}$(this,x,y)
-        class(thiele_interp(${k}$,cp)), intent(out) :: this
-        complex(${k}$), intent(in) :: x(:)
-        complex(${k}$), intent(in) :: y(:)
+    #:endfor
+    #:endfor
 
-        complex(${k}$), allocatable :: rho_temp(:,:)
-        integer :: i
+    #:for d,typ in DOMAINS
+    #:for k in KINDS
+    subroutine MTT_init_${d}$_${k}$(this,x,y)
+        class(MTT_interp_${d}$(${k}$)), intent(out) :: this
+        ${typ}$(${k}$), intent(in) :: x(:)
+        ${typ}$(${k}$), intent(in) :: y(:)
 
-        this%x_z = x
-        this%y_z = y
+        ${typ}$(${k}$), allocatable :: g_j(:),q_i(:),q_i_m(:),q_i_p(:)
+        integer :: j,i
+        logical :: found_x_j
+        ${typ}$(${k}$), parameter :: zero = 0
+
+        this%x = x
+        this%y = y
         this%N = size(x)
 
-        allocate(rho_temp(this%N,this%N))
-        rho_temp = 0
-        rho_temp(:,1) = this%y_z
-        rho_temp(:this%N-1,2) = (this%x_z(:this%N-1) - this%x_z(2:))/(rho_temp(:this%N-1,1) - rho_temp(2:,1))
-
-        do i = 3,this%N
-            rho_temp(:this%N-i+1,i) = (this%x_z(:this%N-i+1) - this%x_z(i:))&
-                                        /(rho_temp(:this%N-i+1,i-1) - rho_temp(2:this%N-i+2,i-1)) &
-                                        + rho_temp(2:this%N-i+2,i-2)
+        do i = 1,this%N
+            do j = i+1,this%N
+                if (is_close(x(i),x(j))) then
+                    call interp_distinct_error('MTT')
+                end if
+            end do
         end do
 
-        this%rho_z = rho_temp(1,:)
-    end subroutine thiele_init_cp_${k}$
+        allocate(this%x_p(this%N),this%y_p(this%N),g_j(2:this%N),this%a(2:this%N))
+        this%x_p = x
+        this%y_p = y
+        g_j = y(2:)-y(1)
+        this%a = 0
 
-    function thiele_eval_scalar_cp_${k}$(this,x) result(res)
-        class(thiele_interp(${k}$,cp)), intent(in) :: this
-        complex(${k}$), intent(in) :: x
-        complex(${k}$) :: res
+        ! Stage (a)
+        this%t = 1
+        do j = 2,this%N
+            if (.not.is_finite(g_j(j)).or.is_close(g_j(j),zero)) then
+                found_x_j = .false.
+                do i = j+1,this%N
+                    if (is_finite(g_j(i)).and..not.is_close(g_j(i),zero)) then
+                        this%x_p([i,j]) = this%x_p([j,i])
+                        g_j([i,j]) = g_j([j,i])
+                        this%y_p([i,j]) = this%y_p([j,i])
+                        found_x_j = .true.
+                        exit
+                    end if
+                end do
+                if (.not.found_x_j) then
+                    if (all(is_finite(g_j(j:)))) then
+                        ! Stage (b)
+                        exit
+                    else
+                        ! Stage (c)
+                        call interp_exist_error('MTT, Stage (c)')
+                    end if
+                end if
+            end if
+            this%a(j) = g_j(j)/(this%x_p(j)-this%x_p(j-1))
+            if (j<this%N) then
+                g_j(j+1:) = this%a(j)*(this%x_p(j+1:)-this%x_p(j-1))/g_j(j+1:) - 1.0_${k}$
+            end if
+            this%t = j
+        end do
+
+        ! Termination stage
+        if (this%t == 1) then
+            this%is_constant = .true.
+        else
+            allocate(q_i(this%N),q_i_m(this%N),q_i_p(this%N))
+            q_i_m = 1.0_${k}$
+            q_i = q_i_m + this%a(3)*(this%x-this%x_p(2))
+            if (any(is_close(q_i,zero))) call interp_exist_error('MTT, q_2')
+            do i = 3,this%t-1
+                q_i_p = q_i + this%a(i+1)*(this%x-this%x_p(i))*q_i_m
+                if (any(is_close(q_i_p,zero))) call interp_exist_error('MTT, q_i')
+                q_i_m = q_i
+                q_i = q_i_p
+            end do
+        end if
+
+    end subroutine MTT_init_${d}$_${k}$
+
+    function MTT_eval_scalar_${d}$_${k}$(this,x) result(res)
+        class(MTT_interp_${d}$(${k}$)), intent(in) :: this
+        ${typ}$(${k}$), intent(in) :: x
+        ${typ}$(${k}$) :: res
 
         integer :: i
-        res = 0
+        ${typ}$(${k}$) :: frac
 
-        do i = this%N,3,-1
-            res = (x - this%x_z(i-1))/(this%rho_z(i) - this%rho_z(i-2) + res)
-        end do
+        res = this%y(1)
 
-        res = this%rho_z(1) + (x - this%x_z(1))/(this%rho_z(2) + res)
+        if (this%t > 1) then
 
-    end function thiele_eval_scalar_cp_${k}$
+            frac = 1.0_${k}$
 
-    function thiele_eval_vec_cp_${k}$(this,x) result(res)
-        class(thiele_interp(${k}$,cp)), intent(in) :: this
-        complex(${k}$), intent(in) :: x(:)
-        complex(${k}$), allocatable :: res(:)
+            do i = this%t,3,-1
+                frac = 1.0_${k}$ + this%a(i)*(x - this%x_p(i-1))/frac
+            end do
+
+            frac = this%a(2)*(x-this%x_p(1))/frac
+            res = res + frac
+        end if
+
+    end function MTT_eval_scalar_${d}$_${k}$
+
+    function MTT_eval_vec_${d}$_${k}$(this,x) result(res)
+        class(MTT_interp_${d}$(${k}$)), intent(in) :: this
+        ${typ}$(${k}$), intent(in) :: x(:)
+        ${typ}$(${k}$), allocatable :: res(:)
 
         integer :: i
 
@@ -240,249 +275,25 @@ contains
             res(i) = this%eval(x(i))
         end do
 
-    end function thiele_eval_vec_cp_${k}$
+    end function MTT_eval_vec_${d}$_${k}$
+
+    #:endfor
     #:endfor
 
     #:for k in KINDS
-    subroutine MTT_init_re_${k}$(this,x,y)
-        class(MTT_interp(${k}$,re)), intent(out) :: this
-        real(${k}$), intent(in) :: x(:)
-        real(${k}$), intent(in) :: y(:)
-
-        real(${k}$), allocatable :: g_j(:),q_i(:),q_i_m(:),q_i_p(:)
-        integer :: j,i
-        logical :: found_x_j
-        real(${k}$), parameter :: zero = 0.0_${k}$
-
-        this%x_r = x
-        this%y_r = y
-        this%N = size(x)
-
-        do i = 1,this%N
-            do j = i+1,this%N
-                if (is_close(x(i),x(j))) then
-                    call interp_distinct_error('MTT')
-                end if
-            end do
-        end do
-
-        allocate(this%x_p_r(this%N),this%y_p_r(this%N),g_j(2:this%N),this%a_r(2:this%N))
-        this%x_p_r = x
-        this%y_p_r = y
-        g_j = y(2:)-y(1)
-        this%a_r = 0
-
-        ! Stage (a)
-        this%t = 1
-        do j = 2,this%N
-            if (.not.ieee_is_finite(g_j(j)).or.is_close(g_j(j),zero)) then
-                found_x_j = .false.
-                do i = j+1,this%N
-                    if (ieee_is_finite(g_j(i)).and..not.is_close(g_j(i),zero)) then
-                        this%x_p_r([i,j]) = this%x_p_r([j,i])
-                        g_j([i,j]) = g_j([j,i])
-                        this%y_p_r([i,j]) = this%y_p_r([j,i])
-                        found_x_j = .true.
-                        exit
-                    end if
-                end do
-                if (.not.found_x_j) then
-                    if (all(ieee_is_finite(g_j(j:)))) then
-                        ! Stage (b)
-                        exit
-                    else
-                        ! Stage (c)
-                        call interp_exist_error('MTT, Stage (c)')
-                    end if
-                end if
-            end if
-            this%a_r(j) = g_j(j)/(this%x_p_r(j)-this%x_p_r(j-1))
-            if (j<this%N) then
-                g_j(j+1:) = this%a_r(j)*(this%x_p_r(j+1:)-this%x_p_r(j-1))/g_j(j+1:) - 1.0_${k}$
-            end if
-            this%t = j
-        end do
-
-        ! Termination stage
-        if (this%t == 1) then
-            this%is_constant = .true.
-        else
-            allocate(q_i(this%N),q_i_m(this%N),q_i_p(this%N))
-            q_i_m = 1.0_${k}$
-            q_i = q_i_m + this%a_r(3)*(this%x_r-this%x_p_r(2))
-            if (any(is_close(q_i,zero))) call interp_exist_error('MTT, q_2')
-            do i = 3,this%t-1
-                q_i_p = q_i + this%a_r(i+1)*(this%x_r-this%x_p_r(i))*q_i_m
-                if (any(is_close(q_i_p,zero))) call interp_exist_error('MTT, q_i')
-                q_i_m = q_i
-                q_i = q_i_p
-            end do
-        end if
-
-    end subroutine MTT_init_re_${k}$
-
-    function MTT_eval_scalar_re_${k}$(this,x) result(res)
-        class(MTT_interp(${k}$,re)), intent(in) :: this
+    elemental function is_finite_re_${k}$(x) result(res)
         real(${k}$), intent(in) :: x
-        real(${k}$) :: res
+        logical :: res
 
-        integer :: i
-        real(${k}$) :: frac
+        res = ieee_is_finite(x)
+    end function is_finite_re_${k}$
 
-        res = this%y_r(1)
-
-        if (this%t > 1) then
-
-            frac = 1.0_${k}$
-
-            do i = this%t,3,-1
-                frac = 1.0_${k}$ + this%a_r(i)*(x - this%x_p_r(i-1))/frac
-            end do
-
-            frac = this%a_r(2)*(x-this%x_p_r(1))/frac
-            res = res + frac
-        end if
-
-    end function MTT_eval_scalar_re_${k}$
-
-    function MTT_eval_vec_re_${k}$(this,x) result(res)
-        class(MTT_interp(${k}$,re)), intent(in) :: this
-        real(${k}$), intent(in) :: x(:)
-        real(${k}$), allocatable :: res(:)
-
-        integer :: i
-
-        allocate(res(size(x)))
-        res = 0
-
-        do i = 1,size(x)
-            res(i) = this%eval(x(i))
-        end do
-
-    end function MTT_eval_vec_re_${k}$
-
-    subroutine MTT_init_cp_${k}$(this,x,y)
-        class(MTT_interp(${k}$,cp)), intent(out) :: this
-        complex(${k}$), intent(in) :: x(:)
-        complex(${k}$), intent(in) :: y(:)
-
-        complex(${k}$), allocatable :: g_j(:),q_i(:),q_i_m(:),q_i_p(:)
-        integer :: j,i
-        logical :: found_x_j
-        complex(${k}$), parameter :: zero = (0.0_${k}$,0.0_${k}$)
-
-        this%x_z = x
-        this%y_z = y
-        this%N = size(x)
-
-        do i = 1,this%N
-            do j = i+1,this%N
-                if (is_close(x(i),x(j))) then
-                    call interp_distinct_error('MTT')
-                end if
-            end do
-        end do
-
-        allocate(this%x_p_z(this%N),this%y_p_z(this%N),g_j(2:this%N),this%a_z(2:this%N))
-        this%x_p_z = x
-        this%y_p_z = y
-        g_j = y(2:)-y(1)
-        this%a_z = 0
-
-        ! Stage (a)
-        this%t = 1
-        do j = 2,this%N
-            if (.not.is_finite_${k}$(g_j(j)).or.is_close(g_j(j),zero)) then
-                found_x_j = .false.
-                do i = j+1,this%N
-                    if (is_finite_${k}$(g_j(i)).and..not.is_close(g_j(i),zero)) then
-                        this%x_p_z([i,j]) = this%x_p_z([j,i])
-                        g_j([i,j]) = g_j([j,i])
-                        this%y_p_z([i,j]) = this%y_p_z([j,i])
-                        found_x_j = .true.
-                        exit
-                    end if
-                end do
-                if (.not.found_x_j) then
-                    if (all(is_finite_${k}$(g_j(j:)))) then
-                        ! Stage (b)
-                        exit
-                    else
-                        ! Stage (c)
-                        call interp_exist_error('MTT, Stage (c)')
-                    end if
-                end if
-            end if
-            this%a_z(j) = g_j(j)/(this%x_p_z(j)-this%x_p_z(j-1))
-            if (j<this%N) then
-                g_j(j+1:) = this%a_z(j)*(this%x_p_z(j+1:)-this%x_p_z(j-1))/g_j(j+1:) - 1.0_${k}$
-            end if
-            this%t = j
-        end do
-
-        ! Termination stage
-        if (this%t == 1) then
-            this%is_constant = .true.
-        else
-            allocate(q_i(this%N),q_i_m(this%N),q_i_p(this%N))
-            q_i_m = 1.0_${k}$
-            q_i = q_i_m + this%a_z(3)*(this%x_z-this%x_p_z(2))
-            if (any(is_close(q_i,zero))) call interp_exist_error('MTT, q_2')
-            do i = 3,this%t-1
-                q_i_p = q_i + this%a_z(i+1)*(this%x_z-this%x_p_z(i))*q_i_m
-                if (any(is_close(q_i_p,zero))) call interp_exist_error('MTT, q_i')
-                q_i_m = q_i
-                q_i = q_i_p
-            end do
-        end if
-    end subroutine MTT_init_cp_${k}$
-
-    function MTT_eval_scalar_cp_${k}$(this,x) result(res)
-        class(MTT_interp(${k}$,cp)), intent(in) :: this
-        complex(${k}$), intent(in) :: x
-        complex(${k}$) :: res
-
-        integer :: i
-        complex(${k}$) :: frac
-
-        res = this%y_z(1)
-
-        if (this%t > 1) then
-
-            frac = 1.0_${k}$
-
-            do i = this%t,3,-1
-                frac = 1.0_${k}$ + this%a_z(i)*(x - this%x_p_z(i-1))/frac
-            end do
-
-            frac = this%a_z(2)*(x-this%x_p_z(1))/frac
-            res = res + frac
-        end if
-
-    end function MTT_eval_scalar_cp_${k}$
-
-    function MTT_eval_vec_cp_${k}$(this,x) result(res)
-        class(MTT_interp(${k}$,cp)), intent(in) :: this
-        complex(${k}$), intent(in) :: x(:)
-        complex(${k}$), allocatable :: res(:)
-
-        integer :: i
-
-        allocate(res(size(x)))
-        res = 0
-
-        do i = 1,size(x)
-            res(i) = this%eval(x(i))
-        end do
-
-    end function MTT_eval_vec_cp_${k}$
-
-    elemental function is_finite_${k}$(z) result(res)
+    elemental function is_finite_cp_${k}$(z) result(res)
         complex(${k}$), intent(in) :: z
         logical :: res
 
         res = ieee_is_finite(real(z,kind=${k}$)).and.ieee_is_finite(aimag(z))
-    end function is_finite_${k}$
+    end function is_finite_cp_${k}$
 
     #:endfor
 
