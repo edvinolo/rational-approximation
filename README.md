@@ -33,11 +33,17 @@ The library uses parameterized derived types (PDTs) with ```kind``` type paramet
 For each supported approximaiton type there are two versions, one for real input data and one for complex. This is indicated by a suffix on the corresponding PDT, ```re``` for real or ```cp``` for complex. If you want to evaluate the interpolant for complex arguments, then you need to use the complex version. The precision is controlled by the PDTs kind type parameter.
 
 For example, to declare a ```MTT_interp``` instance, for ```complex(k)``` data use:
-```MTT_interp_cp(k) :: cmplx_MTT```.
+```
+MTT_interp_cp(k) :: cmplx_MTT
+```
 
 To compute the interpolant for the interpolation points ```x``` and function values ```y```:
-```call cmplx_MTT%init(x,y)```
+```
+call cmplx_MTT%init(x,y)
+```
 
 To evaluate the interpolant at ```z```:
-```cmplx_MTT%eval(z)```
+```
+cmplx_MTT%eval(z)
+```
 Currently, ```z``` can be a scalar or rank 1 array.
