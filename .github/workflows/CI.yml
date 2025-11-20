@@ -11,10 +11,10 @@ jobs:
                 os: [ubuntu-latest,macos-14,windows-latest]
                 toolchain:
                     # - {compiler: gcc, version: 15}
-                    - {compiler: intel, version: 2024.1}
-                    - {compiler: intel, version: 2025.2}
-                    - {compiler: intel, version: 2025.3}
-                    - {compiler: intel-classic, version: 2021.10}
+                    - {compiler: intel, version: '2024.1'}
+                    - {compiler: intel, version: '2025.2'}
+                    - {compiler: intel, version: '2025.3'}
+                    - {compiler: intel-classic, version: '2021.10'}
                 exclude:
                     # - os: ubuntu-latest
                     #   toolchain: {compiler: gcc, version: 15}
