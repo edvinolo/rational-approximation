@@ -45,7 +45,8 @@ jobs:
                 gcc-12 --version
                 whereis gcc-12
                 which gcc-12
-                which gcc@12
+                ls /opt/homebrew/Cellar/gcc@12/12.4.0
+                ls /opt/homebrew/Cellar/gcc@12/12.4.0/lib/gcc/12
 
             - run: |
                 fpm test
