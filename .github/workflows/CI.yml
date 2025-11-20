@@ -42,6 +42,8 @@ jobs:
               run: |
                 brew install gcc@12
                 gcc-12 --version
+                whereis gcc-12
+                which gcc-12
 
             - run: |
                 fpm test
