@@ -18,7 +18,7 @@ jobs:
                 include:
                     - os: macos-13
                       toolchain: {compiler: intel-classic, version: '2021.10'}
-                    - os: macos-14
+                    - os: macos-15-intel
                       toolchain: {compiler: intel-classic, version: '2021.10'}
 
 
@@ -37,16 +37,16 @@ jobs:
               with:
                 github-token: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Install GCC-12 on macos
-              if: contains(matrix.os, 'macos-14')
+            - name: Install GCC-12 on macos-15-intel
+              if: contains(matrix.os, 'macos-15-intel')
               run: |
                 brew install gcc@12
-                install_name_tool -add_rpath /opt/homebrew/Cellar/gcc@12/12.4.0/lib/gcc/12 /Users/runner/work/_temp/fpm
-                sudo mkdir -p /usr/local/opt
-                sudo ln -s /opt/homebrew/Cellar/gcc@12 /usr/local/opt/gcc@12
-                which brew
-                brew --prefix
-                brew config
+# install_name_tool -add_rpath /opt/homebrew/Cellar/gcc@12/12.4.0/lib/gcc/12 /Users/runner/work/_temp/fpm
+# sudo mkdir -p /usr/local/opt
+# sudo ln -s /opt/homebrew/Cellar/gcc@12 /usr/local/opt/gcc@12
+# which brew
+# brew --prefix
+# brew config
 
 
 
