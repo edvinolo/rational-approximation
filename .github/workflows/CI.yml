@@ -41,8 +41,7 @@ jobs:
               if: contains(matrix.os, 'macos-14')
               run: |
                 brew install gcc@12
-                which fpm
-                install_name_tool -add_rpath /opt/homebrew/Cellar/gcc@12/12.4.0/lib/gcc/12 fpm
+                install_name_tool -add_rpath /opt/homebrew/Cellar/gcc@12/12.4.0/lib/gcc/12 /Users/runner/work/_temp/fpm
 
             - run: |
                 fpm test
