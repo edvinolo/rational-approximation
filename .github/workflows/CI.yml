@@ -44,6 +44,10 @@ jobs:
                 install_name_tool -add_rpath /opt/homebrew/Cellar/gcc@12/12.4.0/lib/gcc/12 /Users/runner/work/_temp/fpm
                 sudo mkdir -p /usr/local/opt
                 sudo ln -s /opt/homebrew/Cellar/gcc@12 /usr/local/opt/gcc@12
+                which brew
+                brew --prefix
+                brew config
+
 
 
             - run: |
