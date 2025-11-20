@@ -1,4 +1,8 @@
 # rational-approximation
+[![Language](https://img.shields.io/badge/-Fortran-734f96?logo=fortran&logoColor=white)](https://github.com/topics/fortran)
+[![CI](https://github.com/edvinolo/rational-approximation/actions/workflows/CI.yml/badge.svg)](https://github.com/edvinolo/rational-approximation/actions/workflows/CI.yml)
+[![GitHub last commit (branch)](https://img.shields.io/github/last-commit/edvinolo/rational-approximation/main)](https://github.com/edvinolo/rational-approximation/commits/main/)
+
 This is a Fortran library for rational approximation of functions. The library can be built using the Fortran Package Manager (fpm). Multiple precisions are supported using the fypp preprocessing tool. Both real and complex types are supported.
 
 ## Currently supported interpolation schemes
@@ -25,10 +29,15 @@ The current list of examples is:
 - ```MTT_cos``` Computes an interpolation of cos for real and complex arguments using the MTT algorithm (```MTT_interp```). Also checks one of the early stopping conditions of the algorithm.
 
 ## Supported compilers
-The library has been tested with the following compilers (on a Linux system):
-- ```ifx``` version 2025.3.0
+The library is tested with the following compilers and OS's on the default branch:
 
-Earlier versions may work, but have not been tested at the moment. 
+Name | Version | Platform | Architecture
+--- | --- | --- | ---
+Intel oneAPI LLVM | 2024.1, 2025.2, 2025.3 | Ubuntu 24.04.3 LTS | x86_64
+Intel oneAPI classic | 2021.10 | Ubuntu 24.04.3 LTS | x86_64
+Intel oneAPI classic | 2021.10 | macOS 13.7.6 (22H625) | x86_64
+
+Other versions may work, but have not been tested at the moment. 
 
 The library uses parameterized derived types (PDTs) with ```kind``` type parameters, which means this must be supported by the compiler you intend to build the library with.
 
