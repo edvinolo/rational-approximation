@@ -8,22 +8,19 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest,macos-13]
+                os: [ubuntu-latest]
                 toolchain:
                     # - {compiler: gcc, version: 15}
                     - {compiler: intel, version: '2024.1'}
                     - {compiler: intel, version: '2025.2'}
                     - {compiler: intel, version: '2025.3'}
                     - {compiler: intel-classic, version: '2021.10'}
-                exclude:
-                    # - os: ubuntu-latest
-                    #   toolchain: {compiler: gcc, version: 15}
+                include:
                     - os: macos-13
-                      toolchain: {compiler: intel, version: '2024.1'}
-                    - os: macos-13
-                      toolchain: {compiler: intel, version: '2025.2'}
-                    - os: macos-13
-                      toolchain: {compiler: intel, version: '2025.3'}
+                      toolchain: {compiler: intel-clasic, version: '2021.10'}
+                    - os: macos-14
+                      toolchain: {compiler: intel-clasic, version: '2021.10'}
+
 
         steps:
             - name: Checkout code
@@ -39,6 +36,11 @@ jobs:
               uses: fortran-lang/setup-fpm@v7
               with:
                 github-token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Install GCC-12 on macos
+              if: contains(matrix.os, 'macos-14')
+              run: |
+                brew install gcc@12
 
             - run: |
                 fpm test
