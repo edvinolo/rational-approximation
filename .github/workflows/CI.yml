@@ -41,6 +41,7 @@ jobs:
               if: contains(matrix.os, 'macos-14')
               run: |
                 brew install gcc@12
+                gcc-12 --version
 
             - run: |
                 fpm test
