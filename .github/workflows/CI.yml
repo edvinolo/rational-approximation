@@ -22,7 +22,7 @@ jobs:
 
         steps:
             - name: Checkout code
-              uses: actions/checkout@v1
+              uses: actions/checkout@v6
 
             - uses: fortran-lang/setup-fortran@main
               id: setup-fortran
@@ -31,7 +31,7 @@ jobs:
                 version: ${{ matrix.toolchain.version }}
 
             - name: Setup Fortran Package Manager
-              uses: fortran-lang/setup-fpm@v7
+              uses: fortran-lang/setup-fpm@v8
               with:
                 github-token: ${{ secrets.GITHUB_TOKEN }}
 
