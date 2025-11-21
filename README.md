@@ -35,7 +35,7 @@ Name | Version | Platform | Architecture
 --- | --- | --- | ---
 Intel oneAPI LLVM | 2024.1, 2025.2, 2025.3 | Ubuntu 24.04.3 LTS | x86_64
 Intel oneAPI classic | 2021.10 | Ubuntu 24.04.3 LTS | x86_64
-Intel oneAPI classic | 2021.10 | macOS 13.7.6 (22H625) | x86_64
+Intel oneAPI classic | 2021.10 | macOS 15.7.1 (24G231) | x86_64
 
 Other versions may work, but have not been tested at the moment. 
 
