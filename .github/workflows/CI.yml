@@ -16,8 +16,6 @@ jobs:
                     - {compiler: intel, version: '2025.3'}
                     - {compiler: intel-classic, version: '2021.10'}
                 include:
-                    - os: macos-13
-                      toolchain: {compiler: intel-classic, version: '2021.10'}
                     - os: macos-15-intel
                       toolchain: {compiler: intel-classic, version: '2021.10'}
 
@@ -41,14 +39,6 @@ jobs:
               if: contains(matrix.os, 'macos-15-intel')
               run: |
                 brew install gcc@12
-# install_name_tool -add_rpath /opt/homebrew/Cellar/gcc@12/12.4.0/lib/gcc/12 /Users/runner/work/_temp/fpm
-# sudo mkdir -p /usr/local/opt
-# sudo ln -s /opt/homebrew/Cellar/gcc@12 /usr/local/opt/gcc@12
-# which brew
-# brew --prefix
-# brew config
-
-
 
             - run: |
                 fpm test
