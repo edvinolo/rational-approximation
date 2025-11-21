@@ -8,26 +8,21 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest,macos-13]
+                os: [ubuntu-latest]
                 toolchain:
                     # - {compiler: gcc, version: 15}
                     - {compiler: intel, version: '2024.1'}
                     - {compiler: intel, version: '2025.2'}
                     - {compiler: intel, version: '2025.3'}
                     - {compiler: intel-classic, version: '2021.10'}
-                exclude:
-                    # - os: ubuntu-latest
-                    #   toolchain: {compiler: gcc, version: 15}
-                    - os: macos-13
-                      toolchain: {compiler: intel, version: '2024.1'}
-                    - os: macos-13
-                      toolchain: {compiler: intel, version: '2025.2'}
-                    - os: macos-13
-                      toolchain: {compiler: intel, version: '2025.3'}
+                include:
+                    - os: macos-15-intel
+                      toolchain: {compiler: intel-classic, version: '2021.10'}
+
 
         steps:
             - name: Checkout code
-              uses: actions/checkout@v1
+              uses: actions/checkout@v6
 
             - uses: fortran-lang/setup-fortran@main
               id: setup-fortran
@@ -36,9 +31,14 @@ jobs:
                 version: ${{ matrix.toolchain.version }}
 
             - name: Setup Fortran Package Manager
-              uses: fortran-lang/setup-fpm@v7
+              uses: fortran-lang/setup-fpm@v8
               with:
                 github-token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Install GCC-12 on macos-15-intel
+              if: contains(matrix.os, 'macos-15-intel')
+              run: |
+                brew install gcc@12
 
             - run: |
                 fpm test
