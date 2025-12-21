@@ -93,6 +93,7 @@ contains
     end function
 
 
+    ! Use Horner's method to evaluate a polynomial.
     pure function horner_re_sp(c,x) result(res)
         real(sp), intent(in) :: c(:)
         real(sp), intent(in) :: x

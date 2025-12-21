@@ -59,6 +59,10 @@ module robust_pade
 
 contains
 
+    ! Try to compute a Padé approximant of type [m/n] for a function with Taylor coeffs. c.
+    ! The SVD-based robust Padé algorithm of Gonnet, Güttel, and Trefethen (SIAM Review 55, 1, 101-117, 2013),
+    ! is used. This means that the final approximant could be of lower order [mu,nu], mu <= m, nu <= n,
+    ! depending on noise and tolerance levels.
     subroutine pade_init_re_sp(this,m,n,c,tol)
         class(pade_re(sp)), intent(out) :: this
         integer, intent(in) :: m

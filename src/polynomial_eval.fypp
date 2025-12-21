@@ -53,6 +53,7 @@ contains
     #: endfor
     #: endfor
 
+    ! Use Horner's method to evaluate a polynomial.
     #: for d,typ in DOMAINS
     #: for k in KINDS
     pure function horner_${d}$_${k}$(c,x) result(res)
