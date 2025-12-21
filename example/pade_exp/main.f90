@@ -28,5 +28,7 @@ program pade_exp
     print *, cmplx_pade%p
     print *, cmplx_pade%q
     print *, 'e_pade =  ', cmplx_pade%eval((1.0_wp,0.0_wp)), ' e = ', exp((1.0_wp,0.0_wp))
+    print *, 'e_pade =  ', cmplx_pade%eval([(0.5_wp,0.5_wp),(1.0_wp,-0.5_wp)]),&
+             ' e = ', exp([(0.5_wp,0.5_wp),(1.0_wp,-0.5_wp)])
 
 end program pade_exp
