@@ -1,0 +1,218 @@
+#: include "../include/common.fypp"
+module robust_pade
+    use kinds
+    use polynomial_eval, only: rat_eval
+    use iso_fortran_env, only: stdout => output_unit, stderr => error_unit
+    use stdlib_optval, only: optval
+    use stdlib_linalg, only: svd
+    use stdlib_linalg_blas, only: gemv
+    implicit none
+
+    #: for k in KINDS
+        real(${k}$), parameter :: DEFAULT_TOL_${k}$ = 1.0e2_${k}$*epsilon(1.0_${k}$)
+    #: endfor
+
+    #: for d,typ in list(zip(DOMAIN_PREFIX,WP_TYPES))
+    type, public :: pade_${d}$(wp)
+        integer, kind :: wp
+        integer :: m
+        integer :: n
+        integer :: mu
+        integer :: nu
+        real(wp) :: tol
+        ${typ}$, allocatable :: c(:)
+        ${typ}$, allocatable :: p(:)
+        ${typ}$, allocatable :: q(:)
+
+    contains
+        generic :: init => #{for KIND in KINDS[:-1]}#init_${d}$_${KIND}$, #{endfor}#init_${d}$_${KINDS[-1]}$
+        generic :: eval => #{for k in KINDS[:-1]}#eval_vec_${d}$_${k}$, eval_scalar_${d}$_${k}$, #{endfor}#eval_vec_${d}$_${KINDS[-1]}$, eval_scalar_${d}$_${KINDS[-1]}$
+
+        #:for k in KINDS
+        procedure :: init_${d}$_${k}$ => pade_init_${d}$_${k}$
+        procedure :: eval_scalar_${d}$_${k}$ => pade_eval_scalar_${d}$_${k}$
+        procedure :: eval_vec_${d}$_${k}$ => pade_eval_vec_${d}$_${k}$
+        #:endfor
+    end type pade_${d}$
+
+    #: endfor
+
+contains
+
+    #: for d,typ in DOMAINS
+    #: for k in KINDS
+    subroutine pade_init_${d}$_${k}$(this,m,n,c,tol)
+        class(pade_${d}$(${k}$)), intent(out) :: this
+        integer, intent(in) :: m
+        integer, intent(in) :: n
+        ${typ}$(${k}$), intent(in) :: c(:)
+        real(${k}$), intent(in), optional :: tol
+
+        real(${k}$) :: tau
+        ${typ}$(${k}$), allocatable :: G_upper(:,:)
+        ${typ}$(${k}$), allocatable :: G_tilde(:,:)
+        ${typ}$(${k}$), allocatable :: G(:,:)
+        real(${k}$), allocatable :: s(:)
+        ${typ}$(${k}$), allocatable :: U(:,:)
+        ${typ}$(${k}$), allocatable :: V_t(:,:)
+        integer :: rho
+        integer :: i,j
+        ${typ}$(${k}$) :: one,zero
+
+        if (m + n + 1 /= size(c)) then
+            write(stderr,*) 'Error in pade_init_${d}$_${k}$, len(c) not equal to m + n + 1.'
+            error stop
+        end if
+
+        this%tol = optval(tol, DEFAULT_TOL_${k}$)
+        this%c = c
+        this%m = m
+        this%n = n
+        this%mu = m
+        this%nu = n
+
+        one = 1.0_${k}$
+        zero = 0.0_${k}$
+        allocate(this%p(m+1),this%q(n+1),source = zero)
+        allocate(G_tilde(n,n+1),source = zero)
+        allocate(G(m+n+1,n+1),source = zero)
+        allocate(s(n+1),U(n,n),V_t(n+1,n+1))
+
+
+        tau = norm2(abs(c))*this%tol
+
+        if (all(abs(c(:m+1)) <= tau)) then ! Paper says that it shuold also be c(1) = ... = c(m+1), but not sure if that matters if they are all less than tau.
+            this%q(1) = 1.0_${k}$
+            this%mu = 0
+            this%nu = 0
+            return
+        end if
+
+        if(n > 0) then
+            ! Fill G
+            do i = 1,n+1
+                G(i:n+m+1,i) = c(1:m+n+2-i)
+            end do
+
+            ! G_upper = G(:m+1,:) ! Maybe this matrix is unnecessary, just use a slice of G when needed
+            G_tilde = G(m+2:,:)
+        end if
+
+        do while(this%nu > 0)
+            call svd(G_tilde(:this%nu,:this%nu+1),s(:this%nu+1),u=U(:this%nu,:this%nu),vt=V_t(:this%nu+1,:this%nu+1))
+            rho = 0
+            do i = 1,this%nu
+                if (s(i) > tau) rho = rho + 1
+            end do
+
+            if (this%nu > rho) then
+                this%nu = rho
+                this%mu = this%mu - (this%nu-rho)
+            else
+                exit
+            end if
+
+        end do
+
+        if (this%nu == 0) then
+            this%p = c
+            this%q = 1
+        else
+            this%q(:this%nu+1) = V_t(this%nu+1,:this%nu+1)
+            G_upper = G(:this%mu+1,:this%nu+1)
+            call gemv('N',this%mu+1,this%nu+1,one,G_upper,this%mu+1,this%q(:this%nu+1),&
+                    1,zero,this%p(:this%mu+1),1)
+        end if
+
+        ! count b < tol
+        rho = 0 ! use rho for lambda
+        do i = 1,this%nu+1
+            if (abs(this%q(i)) <= this%tol) then
+                rho = rho + 1
+            else
+                exit
+            end if
+        end do
+
+        if (rho > 0) then
+            this%p(:this%mu+1-rho) = this%p(rho+1:this%mu+1)
+            this%q(:this%nu+1-rho) = this%q(rho+1:this%nu+1)
+
+            this%p(rho+1:) = zero
+            this%q(rho+1:) = zero
+
+            this%mu = this%mu-rho
+            this%nu = this%nu-rho
+        end if
+
+        ! count b < tol
+        rho = 0 ! use rho for lambda
+        do i = this%nu+1,1,-1
+            if (abs(this%q(i)) <= this%tol) then
+                rho = rho + 1
+            else
+                j = i+1
+                exit
+            end if
+        end do
+
+        if (rho > 0) then
+            this%q(j:) = zero
+            this%nu = this%nu-rho
+        end if
+
+        ! count a < tau
+        rho = 0 ! use rho for lambda
+        do i = this%mu+1,1,-1
+            if (abs(this%p(i)) <= tau) then
+                rho = rho + 1
+            else
+                j = i + 1
+                exit
+            end if
+        end do
+
+        if (rho > 0) then
+            this%p(j:) = zero
+            this%mu = this%mu-rho
+        end if
+
+        this%p(:this%mu+1) = this%p(:this%mu+1)/this%q(1)
+        this%q(:this%nu+1) = this%q(:this%nu+1)/this%q(1)
+
+    end subroutine pade_init_${d}$_${k}$
+
+    #: endfor
+    #: endfor
+
+    #: for d,typ in DOMAINS
+    #: for k in KINDS
+    pure function pade_eval_scalar_${d}$_${k}$(this,x) result(res)
+        class(pade_${d}$(${k}$)), intent(in) :: this
+        ${typ}$(${k}$), intent(in) :: x
+        ${typ}$(${k}$) :: res
+
+        res = rat_eval(this%p,this%q,x)
+    end function pade_eval_scalar_${d}$_${k}$
+
+    #: endfor
+    #: endfor
+
+    #: for d,typ in DOMAINS
+    #: for k in KINDS
+    pure function pade_eval_vec_${d}$_${k}$(this,x) result(res)
+        class(pade_${d}$(${k}$)), intent(in) :: this
+        ${typ}$(${k}$), intent(in) :: x(:)
+        ${typ}$(${k}$), allocatable :: res(:)
+
+        integer :: i
+
+        allocate(res(size(x)))
+        do i = 1, size(x)
+            res(i) = rat_eval(this%p,this%q,x(i))
+        end do
+    end function pade_eval_vec_${d}$_${k}$
+
+    #: endfor
+    #: endfor
+end module robust_pade

@@ -1,0 +1,75 @@
+#: include "../include/common.fypp"
+module polynomial_eval
+    use kinds
+    implicit none
+
+    private
+
+    public :: poly_eval
+    public :: rat_eval
+
+    interface poly_eval
+    #: for d in DOMAIN_PREFIX
+    #: for k in KINDS
+        module procedure :: poly_eval_${d}$_${k}$
+    #: endfor
+    #: endfor
+    end interface poly_eval
+
+    interface rat_eval
+    #: for d in DOMAIN_PREFIX
+    #: for k in KINDS
+        module procedure :: rat_eval_${d}$_${k}$
+    #: endfor
+    #: endfor
+    end interface rat_eval
+
+contains
+
+    #: for d,typ in DOMAINS
+    #: for k in KINDS
+    pure function poly_eval_${d}$_${k}$(c,x) result(res)
+        ${typ}$(${k}$), intent(in) :: c(:)
+        ${typ}$(${k}$), intent(in) :: x
+        ${typ}$(${k}$) :: res
+
+        res = horner_${d}$_${k}$(c,x)
+    end function
+
+    #: endfor
+    #: endfor
+
+    #: for d,typ in DOMAINS
+    #: for k in KINDS
+    pure function rat_eval_${d}$_${k}$(p,q,x) result(res)
+        ${typ}$(${k}$), intent(in) :: p(:)
+        ${typ}$(${k}$), intent(in) :: q(:)
+        ${typ}$(${k}$), intent(in) :: x
+        ${typ}$(${k}$) :: res
+
+        res = poly_eval_${d}$_${k}$(p,x)/poly_eval_${d}$_${k}$(q,x)
+    end function
+
+    #: endfor
+    #: endfor
+
+    #: for d,typ in DOMAINS
+    #: for k in KINDS
+    pure function horner_${d}$_${k}$(c,x) result(res)
+        ${typ}$(${k}$), intent(in) :: c(:)
+        ${typ}$(${k}$), intent(in) :: x
+        ${typ}$(${k}$) :: res
+
+        integer :: i
+
+        res = c(size(c))
+
+        do i = size(c)-1,1,-1
+            res = c(i) + x*res
+        end do
+    end function
+
+    #: endfor
+    #: endfor
+
+end module polynomial_eval
