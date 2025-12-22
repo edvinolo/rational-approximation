@@ -75,7 +75,6 @@ contains
         real(sp), allocatable :: G_tilde(:,:)
         real(sp), allocatable :: G(:,:)
         real(sp), allocatable :: s(:)
-        real(sp), allocatable :: U(:,:)
         real(sp), allocatable :: V_t(:,:)
         integer :: rho
         integer :: i,j
@@ -98,7 +97,7 @@ contains
         allocate(this%p(m+1),this%q(n+1),source = zero)
         allocate(G_tilde(n,n+1),source = zero)
         allocate(G(m+n+1,n+1),source = zero)
-        allocate(s(n+1),U(n,n),V_t(n+1,n+1))
+        allocate(s(n+1),V_t(n+1,n+1))
 
 
         tau = norm2(abs(c))*this%tol
@@ -121,7 +120,9 @@ contains
         end if
 
         do while(this%nu > 0)
-            call svd(G_tilde(:this%nu,:this%nu+1),s(:this%nu+1),u=U(:this%nu,:this%nu),vt=V_t(:this%nu+1,:this%nu+1))
+            G_tilde = G_tilde(:this%nu,:this%nu+1)
+            V_t = V_t(:this%nu+1,:this%nu+1)
+            call svd(G_tilde,s(:this%nu+1),vt=V_t)
             rho = 0
             do i = 1,this%nu
                 if (s(i) > tau) rho = rho + 1
@@ -140,7 +141,7 @@ contains
             this%p = c
             this%q = 1
         else
-            this%q(:this%nu+1) = V_t(this%nu+1,:this%nu+1)
+            this%q = V_t(this%nu+1,:)
             G_upper = G(:this%mu+1,:this%nu+1)
             call gemv('N',this%mu+1,this%nu+1,one,G_upper,this%mu+1,this%q(:this%nu+1),&
                     1,zero,this%p(:this%mu+1),1)
@@ -216,7 +217,6 @@ contains
         real(dp), allocatable :: G_tilde(:,:)
         real(dp), allocatable :: G(:,:)
         real(dp), allocatable :: s(:)
-        real(dp), allocatable :: U(:,:)
         real(dp), allocatable :: V_t(:,:)
         integer :: rho
         integer :: i,j
@@ -239,7 +239,7 @@ contains
         allocate(this%p(m+1),this%q(n+1),source = zero)
         allocate(G_tilde(n,n+1),source = zero)
         allocate(G(m+n+1,n+1),source = zero)
-        allocate(s(n+1),U(n,n),V_t(n+1,n+1))
+        allocate(s(n+1),V_t(n+1,n+1))
 
 
         tau = norm2(abs(c))*this%tol
@@ -262,7 +262,9 @@ contains
         end if
 
         do while(this%nu > 0)
-            call svd(G_tilde(:this%nu,:this%nu+1),s(:this%nu+1),u=U(:this%nu,:this%nu),vt=V_t(:this%nu+1,:this%nu+1))
+            G_tilde = G_tilde(:this%nu,:this%nu+1)
+            V_t = V_t(:this%nu+1,:this%nu+1)
+            call svd(G_tilde,s(:this%nu+1),vt=V_t)
             rho = 0
             do i = 1,this%nu
                 if (s(i) > tau) rho = rho + 1
@@ -281,7 +283,7 @@ contains
             this%p = c
             this%q = 1
         else
-            this%q(:this%nu+1) = V_t(this%nu+1,:this%nu+1)
+            this%q = V_t(this%nu+1,:)
             G_upper = G(:this%mu+1,:this%nu+1)
             call gemv('N',this%mu+1,this%nu+1,one,G_upper,this%mu+1,this%q(:this%nu+1),&
                     1,zero,this%p(:this%mu+1),1)
@@ -357,7 +359,6 @@ contains
         complex(sp), allocatable :: G_tilde(:,:)
         complex(sp), allocatable :: G(:,:)
         real(sp), allocatable :: s(:)
-        complex(sp), allocatable :: U(:,:)
         complex(sp), allocatable :: V_t(:,:)
         integer :: rho
         integer :: i,j
@@ -380,7 +381,7 @@ contains
         allocate(this%p(m+1),this%q(n+1),source = zero)
         allocate(G_tilde(n,n+1),source = zero)
         allocate(G(m+n+1,n+1),source = zero)
-        allocate(s(n+1),U(n,n),V_t(n+1,n+1))
+        allocate(s(n+1),V_t(n+1,n+1))
 
 
         tau = norm2(abs(c))*this%tol
@@ -403,7 +404,9 @@ contains
         end if
 
         do while(this%nu > 0)
-            call svd(G_tilde(:this%nu,:this%nu+1),s(:this%nu+1),u=U(:this%nu,:this%nu),vt=V_t(:this%nu+1,:this%nu+1))
+            G_tilde = G_tilde(:this%nu,:this%nu+1)
+            V_t = V_t(:this%nu+1,:this%nu+1)
+            call svd(G_tilde,s(:this%nu+1),vt=V_t)
             rho = 0
             do i = 1,this%nu
                 if (s(i) > tau) rho = rho + 1
@@ -422,7 +425,7 @@ contains
             this%p = c
             this%q = 1
         else
-            this%q(:this%nu+1) = V_t(this%nu+1,:this%nu+1)
+            this%q = V_t(this%nu+1,:)
             G_upper = G(:this%mu+1,:this%nu+1)
             call gemv('N',this%mu+1,this%nu+1,one,G_upper,this%mu+1,this%q(:this%nu+1),&
                     1,zero,this%p(:this%mu+1),1)
@@ -498,7 +501,6 @@ contains
         complex(dp), allocatable :: G_tilde(:,:)
         complex(dp), allocatable :: G(:,:)
         real(dp), allocatable :: s(:)
-        complex(dp), allocatable :: U(:,:)
         complex(dp), allocatable :: V_t(:,:)
         integer :: rho
         integer :: i,j
@@ -521,7 +523,7 @@ contains
         allocate(this%p(m+1),this%q(n+1),source = zero)
         allocate(G_tilde(n,n+1),source = zero)
         allocate(G(m+n+1,n+1),source = zero)
-        allocate(s(n+1),U(n,n),V_t(n+1,n+1))
+        allocate(s(n+1),V_t(n+1,n+1))
 
 
         tau = norm2(abs(c))*this%tol
@@ -544,7 +546,9 @@ contains
         end if
 
         do while(this%nu > 0)
-            call svd(G_tilde(:this%nu,:this%nu+1),s(:this%nu+1),u=U(:this%nu,:this%nu),vt=V_t(:this%nu+1,:this%nu+1))
+            G_tilde = G_tilde(:this%nu,:this%nu+1)
+            V_t = V_t(:this%nu+1,:this%nu+1)
+            call svd(G_tilde,s(:this%nu+1),vt=V_t)
             rho = 0
             do i = 1,this%nu
                 if (s(i) > tau) rho = rho + 1
@@ -563,7 +567,7 @@ contains
             this%p = c
             this%q = 1
         else
-            this%q(:this%nu+1) = V_t(this%nu+1,:this%nu+1)
+            this%q = V_t(this%nu+1,:)
             G_upper = G(:this%mu+1,:this%nu+1)
             call gemv('N',this%mu+1,this%nu+1,one,G_upper,this%mu+1,this%q(:this%nu+1),&
                     1,zero,this%p(:this%mu+1),1)
