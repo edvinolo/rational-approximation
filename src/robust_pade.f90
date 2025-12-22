@@ -199,8 +199,8 @@ contains
             this%mu = this%mu-rho
         end if
 
-        this%p(:this%mu+1) = this%p(:this%mu+1)/this%q(1)
-        this%q(:this%nu+1) = this%q(:this%nu+1)/this%q(1)
+        this%p = this%p(:this%mu+1)/this%q(1)
+        this%q = this%q(:this%nu+1)/this%q(1)
 
     end subroutine pade_init_re_sp
 
@@ -340,8 +340,8 @@ contains
             this%mu = this%mu-rho
         end if
 
-        this%p(:this%mu+1) = this%p(:this%mu+1)/this%q(1)
-        this%q(:this%nu+1) = this%q(:this%nu+1)/this%q(1)
+        this%p = this%p(:this%mu+1)/this%q(1)
+        this%q = this%q(:this%nu+1)/this%q(1)
 
     end subroutine pade_init_re_dp
 
@@ -481,8 +481,8 @@ contains
             this%mu = this%mu-rho
         end if
 
-        this%p(:this%mu+1) = this%p(:this%mu+1)/this%q(1)
-        this%q(:this%nu+1) = this%q(:this%nu+1)/this%q(1)
+        this%p = this%p(:this%mu+1)/this%q(1)
+        this%q = this%q(:this%nu+1)/this%q(1)
 
     end subroutine pade_init_cp_sp
 
@@ -622,8 +622,8 @@ contains
             this%mu = this%mu-rho
         end if
 
-        this%p(:this%mu+1) = this%p(:this%mu+1)/this%q(1)
-        this%q(:this%nu+1) = this%q(:this%nu+1)/this%q(1)
+        this%p = this%p(:this%mu+1)/this%q(1)
+        this%q = this%q(:this%nu+1)/this%q(1)
 
     end subroutine pade_init_cp_dp
 
