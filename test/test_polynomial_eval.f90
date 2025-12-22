@@ -25,7 +25,7 @@ subroutine collect_polynomial_eval_suite(testsuite)
         new_unittest('rat_eval_re_sp test', rat_eval_re_sp_test),&
         new_unittest('rat_eval_re_dp test', rat_eval_re_dp_test),&
         new_unittest('rat_eval_cp_sp test', rat_eval_cp_sp_test),&
-        new_unittest('rat_eval_cp_sp test', rat_eval_cp_sp_test)&
+        new_unittest('rat_eval_cp_dp test', rat_eval_cp_dp_test)&
     ]
 end subroutine collect_polynomial_eval_suite
 

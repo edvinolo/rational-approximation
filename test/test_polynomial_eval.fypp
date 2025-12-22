@@ -31,7 +31,7 @@ subroutine collect_polynomial_eval_suite(testsuite)
         #: for k in KINDS[:-1]
         new_unittest('rat_eval_cp_${k}$ test', rat_eval_cp_${k}$_test),&
         #: endfor
-        new_unittest('rat_eval_cp_${k}$ test', rat_eval_cp_${k}$_test)&
+        new_unittest('rat_eval_cp_${KINDS[-1]}$ test', rat_eval_cp_${KINDS[-1]}$_test)&
     ]
 end subroutine collect_polynomial_eval_suite
 
