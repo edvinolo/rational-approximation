@@ -28,10 +28,16 @@ subroutine collect_pade_suite(testsuite)
         #: for k in KINDS
         new_unittest('pade_poly_re_${k}$ test', pade_poly_re_${k}$_test),&
         #: endfor
-        #: for k in KINDS[:-1]
-        new_unittest('pade_poly_re_${k}$ test', pade_poly_re_${k}$_test),&
+        #: for k in KINDS
+        new_unittest('pade_poly_cp_${k}$ test', pade_poly_cp_${k}$_test),&
         #: endfor
-        new_unittest('pade_poly_re_${KINDS[-1]}$ test', pade_poly_re_${KINDS[-1]}$_test)&
+        #: for k in KINDS
+        new_unittest('noise_re_${k}$_test', noise_re_${k}$_test),&
+        #: endfor
+        #: for k in KINDS[:-1]
+        new_unittest('noise_cp_${k}$_test', noise_cp_${k}$_test),&
+        #: endfor
+        new_unittest('noise_cp_${KINDS[-1]}$_test', noise_cp_${KINDS[-1]}$_test)&
     ]
 end subroutine collect_pade_suite
 
@@ -184,6 +190,63 @@ subroutine pade_poly_${d}$_${k}$_test(error)
     if (allocated(error)) return
 
 end subroutine pade_poly_${d}$_${k}$_test
+#: endfor
+#: endfor
+
+#: for d,typ in DOMAINS
+#: for k in KINDS
+subroutine noise_${d}$_${k}$_test(error)
+    type(error_type), allocatable, intent(out) :: error
+
+    type(pade_${d}$(${k}$)) :: pade
+
+    integer, parameter :: m = 8
+    integer, parameter :: n = 6
+    integer, parameter :: i_max = n+m+1
+
+    ${typ}$(${k}$) :: c(i_max) = 0.0_${k}$
+    real(${k}$), parameter :: tol = 1.0e-5_${k}$
+    real(${k}$), parameter :: noise_lvl = 1.0e-6_${k}$
+    real(${k}$) :: noise
+
+    integer, parameter :: mu_ref = 0
+    integer, parameter :: nu_ref = 1
+    ${typ}$(${k}$), parameter :: p_ref = 1.0_${k}$
+    ${typ}$(${k}$), parameter :: q_ref(2) = [1.0_${k}$,-1.0_${k}$]
+    real(${k}$) :: rel_error
+
+    integer :: i
+
+    call random_seed()
+    do i = 1,i_max
+        call random_number(noise)
+        noise = noise_lvl*2.0_${k}$*(noise-0.5_${k}$)
+        c(i) = 1.0_${k}$ + noise
+        #: if d == 'cp'
+        call random_number(noise)
+        noise = noise_lvl*2.0_${k}$*(noise-0.5_${k}$)
+        c(i) = c(i) + noise*(0.0_${k}$,1.0_${k}$)
+        #: endif
+    end do
+
+    call pade%init(m,n,c,tol=tol)
+
+    ! Function should be 1/(1-z) with some noise
+    call check(error, pade%mu == 0)
+    if (allocated(error)) return
+
+    call check(error, pade%nu == 1)
+    if (allocated(error)) return
+
+    rel_error = abs(pade%p(1)-p_ref)/abs(p_ref)
+    call check(error, rel_error <= tol)
+    if (allocated(error)) return
+
+    rel_error = maxval(abs(pade%q-q_ref)/abs(q_ref))
+    call check(error, rel_error <= tol)
+    if (allocated(error)) return
+end subroutine noise_${d}$_${k}$_test
+
 #: endfor
 #: endfor
 end module test_pade

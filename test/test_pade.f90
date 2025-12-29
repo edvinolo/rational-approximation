@@ -24,8 +24,12 @@ subroutine collect_pade_suite(testsuite)
         new_unittest('pade_exp_cp_dp test', pade_exp_cp_dp_test),&
         new_unittest('pade_poly_re_sp test', pade_poly_re_sp_test),&
         new_unittest('pade_poly_re_dp test', pade_poly_re_dp_test),&
-        new_unittest('pade_poly_re_sp test', pade_poly_re_sp_test),&
-        new_unittest('pade_poly_re_dp test', pade_poly_re_dp_test)&
+        new_unittest('pade_poly_cp_sp test', pade_poly_cp_sp_test),&
+        new_unittest('pade_poly_cp_dp test', pade_poly_cp_dp_test),&
+        new_unittest('noise_re_sp_test', noise_re_sp_test),&
+        new_unittest('noise_re_dp_test', noise_re_dp_test),&
+        new_unittest('noise_cp_sp_test', noise_cp_sp_test),&
+        new_unittest('noise_cp_dp_test', noise_cp_dp_test)&
     ]
 end subroutine collect_pade_suite
 
@@ -408,4 +412,199 @@ subroutine pade_poly_cp_dp_test(error)
     if (allocated(error)) return
 
 end subroutine pade_poly_cp_dp_test
+
+subroutine noise_re_sp_test(error)
+    type(error_type), allocatable, intent(out) :: error
+
+    type(pade_re(sp)) :: pade
+
+    integer, parameter :: m = 8
+    integer, parameter :: n = 6
+    integer, parameter :: i_max = n+m+1
+
+    real(sp) :: c(i_max) = 0.0_sp
+    real(sp), parameter :: tol = 1.0e-5_sp
+    real(sp), parameter :: noise_lvl = 1.0e-6_sp
+    real(sp) :: noise
+
+    integer, parameter :: mu_ref = 0
+    integer, parameter :: nu_ref = 1
+    real(sp), parameter :: p_ref = 1.0_sp
+    real(sp), parameter :: q_ref(2) = [1.0_sp,-1.0_sp]
+    real(sp) :: rel_error
+
+    integer :: i
+
+    call random_seed()
+    do i = 1,i_max
+        call random_number(noise)
+        noise = noise_lvl*2.0_sp*(noise-0.5_sp)
+        c(i) = 1.0_sp + noise
+    end do
+
+    call pade%init(m,n,c,tol=tol)
+
+    ! Function should be 1/(1-z) with some noise
+    call check(error, pade%mu == 0)
+    if (allocated(error)) return
+
+    call check(error, pade%nu == 1)
+    if (allocated(error)) return
+
+    rel_error = abs(pade%p(1)-p_ref)/abs(p_ref)
+    call check(error, rel_error <= tol)
+    if (allocated(error)) return
+
+    rel_error = maxval(abs(pade%q-q_ref)/abs(q_ref))
+    call check(error, rel_error <= tol)
+    if (allocated(error)) return
+end subroutine noise_re_sp_test
+
+subroutine noise_re_dp_test(error)
+    type(error_type), allocatable, intent(out) :: error
+
+    type(pade_re(dp)) :: pade
+
+    integer, parameter :: m = 8
+    integer, parameter :: n = 6
+    integer, parameter :: i_max = n+m+1
+
+    real(dp) :: c(i_max) = 0.0_dp
+    real(dp), parameter :: tol = 1.0e-5_dp
+    real(dp), parameter :: noise_lvl = 1.0e-6_dp
+    real(dp) :: noise
+
+    integer, parameter :: mu_ref = 0
+    integer, parameter :: nu_ref = 1
+    real(dp), parameter :: p_ref = 1.0_dp
+    real(dp), parameter :: q_ref(2) = [1.0_dp,-1.0_dp]
+    real(dp) :: rel_error
+
+    integer :: i
+
+    call random_seed()
+    do i = 1,i_max
+        call random_number(noise)
+        noise = noise_lvl*2.0_dp*(noise-0.5_dp)
+        c(i) = 1.0_dp + noise
+    end do
+
+    call pade%init(m,n,c,tol=tol)
+
+    ! Function should be 1/(1-z) with some noise
+    call check(error, pade%mu == 0)
+    if (allocated(error)) return
+
+    call check(error, pade%nu == 1)
+    if (allocated(error)) return
+
+    rel_error = abs(pade%p(1)-p_ref)/abs(p_ref)
+    call check(error, rel_error <= tol)
+    if (allocated(error)) return
+
+    rel_error = maxval(abs(pade%q-q_ref)/abs(q_ref))
+    call check(error, rel_error <= tol)
+    if (allocated(error)) return
+end subroutine noise_re_dp_test
+
+subroutine noise_cp_sp_test(error)
+    type(error_type), allocatable, intent(out) :: error
+
+    type(pade_cp(sp)) :: pade
+
+    integer, parameter :: m = 8
+    integer, parameter :: n = 6
+    integer, parameter :: i_max = n+m+1
+
+    complex(sp) :: c(i_max) = 0.0_sp
+    real(sp), parameter :: tol = 1.0e-5_sp
+    real(sp), parameter :: noise_lvl = 1.0e-6_sp
+    real(sp) :: noise
+
+    integer, parameter :: mu_ref = 0
+    integer, parameter :: nu_ref = 1
+    complex(sp), parameter :: p_ref = 1.0_sp
+    complex(sp), parameter :: q_ref(2) = [1.0_sp,-1.0_sp]
+    real(sp) :: rel_error
+
+    integer :: i
+
+    call random_seed()
+    do i = 1,i_max
+        call random_number(noise)
+        noise = noise_lvl*2.0_sp*(noise-0.5_sp)
+        c(i) = 1.0_sp + noise
+        call random_number(noise)
+        noise = noise_lvl*2.0_sp*(noise-0.5_sp)
+        c(i) = c(i) + noise*(0.0_sp,1.0_sp)
+    end do
+
+    call pade%init(m,n,c,tol=tol)
+
+    ! Function should be 1/(1-z) with some noise
+    call check(error, pade%mu == 0)
+    if (allocated(error)) return
+
+    call check(error, pade%nu == 1)
+    if (allocated(error)) return
+
+    rel_error = abs(pade%p(1)-p_ref)/abs(p_ref)
+    call check(error, rel_error <= tol)
+    if (allocated(error)) return
+
+    rel_error = maxval(abs(pade%q-q_ref)/abs(q_ref))
+    call check(error, rel_error <= tol)
+    if (allocated(error)) return
+end subroutine noise_cp_sp_test
+
+subroutine noise_cp_dp_test(error)
+    type(error_type), allocatable, intent(out) :: error
+
+    type(pade_cp(dp)) :: pade
+
+    integer, parameter :: m = 8
+    integer, parameter :: n = 6
+    integer, parameter :: i_max = n+m+1
+
+    complex(dp) :: c(i_max) = 0.0_dp
+    real(dp), parameter :: tol = 1.0e-5_dp
+    real(dp), parameter :: noise_lvl = 1.0e-6_dp
+    real(dp) :: noise
+
+    integer, parameter :: mu_ref = 0
+    integer, parameter :: nu_ref = 1
+    complex(dp), parameter :: p_ref = 1.0_dp
+    complex(dp), parameter :: q_ref(2) = [1.0_dp,-1.0_dp]
+    real(dp) :: rel_error
+
+    integer :: i
+
+    call random_seed()
+    do i = 1,i_max
+        call random_number(noise)
+        noise = noise_lvl*2.0_dp*(noise-0.5_dp)
+        c(i) = 1.0_dp + noise
+        call random_number(noise)
+        noise = noise_lvl*2.0_dp*(noise-0.5_dp)
+        c(i) = c(i) + noise*(0.0_dp,1.0_dp)
+    end do
+
+    call pade%init(m,n,c,tol=tol)
+
+    ! Function should be 1/(1-z) with some noise
+    call check(error, pade%mu == 0)
+    if (allocated(error)) return
+
+    call check(error, pade%nu == 1)
+    if (allocated(error)) return
+
+    rel_error = abs(pade%p(1)-p_ref)/abs(p_ref)
+    call check(error, rel_error <= tol)
+    if (allocated(error)) return
+
+    rel_error = maxval(abs(pade%q-q_ref)/abs(q_ref))
+    call check(error, rel_error <= tol)
+    if (allocated(error)) return
+end subroutine noise_cp_dp_test
+
 end module test_pade
