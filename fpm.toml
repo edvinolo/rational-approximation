@@ -30,3 +30,7 @@ source-dir = "example/thiele_sin"
 [[example]]
 name = "MTT_cos"
 source-dir = "example/MTT_cos"
+
+[[example]]
+name = "pade_exp"
+source-dir = "example/pade_exp"

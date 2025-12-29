@@ -10,6 +10,7 @@ This is a Fortran library for rational approximation of functions. The library c
 - ```MTT_interp``` Finds an interpolant using the modified Thacher-Tukey (MTT) algorithm.
 
 ## Currently supported approximation schemes
+- ```pade``` Computes a Padé approximant of specified type from Taylor coefficients. The implementation uses the SVD-based robust Padé algorithm of Gonnet, Güttel, and Trefethen (SIAM Review 55, 1, 101-117, 2013).
 
 ## Building the library
 The library can be built with the ```fpm build``` command.
@@ -27,6 +28,7 @@ To run a specific example, instead do: ```fpm run --example Name_of_example```.
 The current list of examples is:
 - ```thiele_sin``` Computes an interpolation of sin for real and complex arguments using Thiele's interpolation formula (```thiele_interp```)
 - ```MTT_cos``` Computes an interpolation of cos for real and complex arguments using the MTT algorithm (```MTT_interp```). Also checks one of the early stopping conditions of the algorithm.
+- ```pade_exp``` Computes a [3/2] Padé approximant of exp(x) using the robust Padé algorithm. Compares with actual values.
 
 ## Supported compilers
 The library is tested with the following compilers and OS's on the default branch:

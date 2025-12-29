@@ -7,8 +7,10 @@ use kinds
 use rational_interpolation, only: thiele_interp_re, thiele_interp_cp, MTT_interp_re, MTT_interp_cp
 implicit none
 
-real(sp), parameter, private :: rel_tol_sp = 1.0e-5_sp
-real(dp), parameter, private :: rel_tol_dp = 1.0e-13_dp
+private
+
+real(sp), parameter :: rel_tol_sp = 1.0e-5_sp
+real(dp), parameter :: rel_tol_dp = 1.0e-13_dp
 
 public :: collect_interpolation_suite
 
